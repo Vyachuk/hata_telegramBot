@@ -1,5 +1,3 @@
-const { ctrlWrapper } = require("../helpers");
-
 const Property = require("../models/Property");
 
 const getAllPropertyTelegram = async () => {

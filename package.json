@@ -1,5 +1,5 @@
 {
-  "name": "hata.v2",
+  "name": "hata_telegrambot",
   "version": "2.0.1",
   "description": "",
   "main": "server.js",
