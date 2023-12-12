@@ -1,4 +1,4 @@
-const app = require("./app");
+const { app, setupWebhook } = require("./app");
 
 const mongoose = require("mongoose");
 
@@ -12,6 +12,7 @@ mongoose
     app.listen(PORT, () => {
       console.log(`Example app listening on port ${PORT}!`);
     });
+    await setupWebhook();
   })
   .catch((e) => {
     console.log(e.message);

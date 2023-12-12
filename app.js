@@ -2,6 +2,8 @@ const express = require("express");
 
 const cors = require("cors");
 
+const axios = require("axios");
+
 const TelegramBot = require("node-telegram-bot-api");
 
 require("dotenv").config();
@@ -36,6 +38,20 @@ app.use((err, req, res, next) => {
 });
 
 // TELEGRAM BOT
+const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_API}`;
+const URI = `/webhook/${TELEGRAM_BOT_API}`;
+const webhookURL = `${"https://hata-telegrambot.onrender.com"}${URI}`;
+
+const setupWebhook = async () => {
+  try {
+    const { data } = await axios.get(
+      `${TELEGRAM_API}/setWebhook?url=${webhookURL}&drop_pending_updates=true`
+    );
+    console.log(data);
+  } catch (error) {
+    return error;
+  }
+};
 const userCallbackData = {};
 bot.on("callback_query", async (ctx) => {
   try {
@@ -376,4 +392,4 @@ bot.on("contact", async (contact) => {
 
 bot.on("polling_error", (err) => console.log(err.data.error.message));
 
-module.exports = app;
+module.exports = { app, setupWebhook };
