@@ -12,7 +12,7 @@ mongoose
     app.listen(PORT, () => {
       console.log(`Example app listening on port ${PORT}!`);
     });
-    await setupWebhook();
+    setupWebhook();
   })
   .catch((e) => {
     console.log(e.message);
