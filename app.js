@@ -390,6 +390,6 @@ bot.on("contact", async (contact) => {
   }
 });
 
-bot.on("polling_error", (err) => console.log(err.data.error.message));
+bot.on("polling_error", (err) => console.log(err.response.body));
 
 module.exports = { app, setupWebhook };
