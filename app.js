@@ -48,7 +48,6 @@ const setupWebhook = async () => {
     const { data } = await axios.get(
       `${TELEGRAM_API}/setWebhook?url=${webhookURL}&drop_pending_updates=true`
     );
-    console.log(data);
   } catch (error) {
     return error;
   }
@@ -155,15 +154,24 @@ bot.on("callback_query", async (ctx) => {
       for (const [idx, id] of user.owned.entries()) {
         const prop = await propertyCtrl.getPropertyTelegramById(id);
 
-        message += `\n\nДілянка №${prop.propertyNumber}\nПлоща: ${
-          prop.area
-        }\nКадастровий номер: ${prop.kadastrId}\nДата покупки: ${
-          prop.ownershipDate
-        }\nЕлектрика: ${
+        message += `\n\n---------- ---------- ----------\nДілянка №${
+          prop.propertyNumber
+        }\nПлоща: ${prop.area}\nКадастровий номер: ${
+          prop.kadastrId
+        }\nДата покупки: ${prop.ownershipDate}\nЕлектрика: ${
           prop.hasElectic
-            ? `Наявна\nТариф: ${prop.electricTariff} грн.`
+            ? `Наявна\nТариф: ${prop.electricTariff} грн.\nАктуальний показник: ${prop.electricData[0].current}`
             : `Відсутня`
-        }\n`;
+        }\n\nНе оплачені членські внески: ${
+          prop.dueArrears &&
+          prop.dues
+            .filter((item) => item.needPay > 0)
+            .map((item) => {
+              if (item.needPay > 0) {
+                return `\n- Рік: ${item.year} - ${item.needPay} грн`;
+              }
+            })
+        }\nЗагальна сума неоплачених внесків: ${prop.dueArrears} грн.`;
       }
       await bot.sendMessage(ctx.message.chat.id, message, {
         reply_markup: {
@@ -288,6 +296,7 @@ bot.on("callback_query", async (ctx) => {
 
 bot.on("text", async (msg) => {
   try {
+    console.log(userCallbackData);
     if (msg.text == "/start") {
       await bot.sendMessage(
         msg.chat.id,
@@ -305,7 +314,31 @@ bot.on("text", async (msg) => {
       );
     } else if (msg.text == "/giveid") {
       await bot.sendMessage(msg.chat.id, msg.chat.id);
-    } else if (userCallbackData[msg.chat.id]) {
+    } else if (userCallbackData[msg.chat.id]?.userPhone) {
+      const phoneNumer = userCallbackData[msg.chat.id].userPhone;
+      const findedUser = await userCtrl.getUserTelegramByPhone(phoneNumer);
+      if (findedUser.pinCode !== msg.text) {
+        throw new Error("Ви ввели некоректний пароль, спробуйте ще раз.");
+      }
+
+      const updatedUser = await userCtrl.addTelegramChatIdToUser(
+        phoneNumer,
+        msg.chat.id
+      );
+      await bot.sendMessage(
+        msg.chat.id,
+        `${updatedUser.name} ідентифікація успішно завершена. \n\nТепер ви можете перейти на головну сторінку`,
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🏪 На головну", callback_data: "mainPage" }],
+            ],
+          },
+        }
+      );
+
+      delete userCallbackData[msg.chat.id];
+    } else if (userCallbackData[msg.chat.id]?.propId) {
       const propertyId = userCallbackData[msg.chat.id].propId;
       const prop = await propertyCtrl.getPropertyTelegramById(propertyId);
       if (prop.electricData.length > 0) {
@@ -348,46 +381,49 @@ bot.on("text", async (msg) => {
 
       delete userCallbackData[msg.chat.id];
     } else {
-      await bot.sendMessage(
-        msg.chat.id,
-        "Я вас не розумію. Виберіть пункт із меню:",
-        {
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: "🏪 На головну", callback_data: "mainPage" }],
-            ],
-          },
-        }
-      );
+      const user = await userCtrl.getUserByChatId(msg.chat.id);
+      if (!user) {
+        await bot.sendMessage(
+          msg.chat.id,
+          "Ви не авторизовані, будь-ласка пройдіть реєстрацію."
+        );
+      } else {
+        await bot.sendMessage(
+          msg.chat.id,
+          "Я вас не розумію. Виберіть пункт із меню:",
+          {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "🏪 На головну", callback_data: "mainPage" }],
+              ],
+            },
+          }
+        );
+      }
     }
   } catch (error) {
-    console.log(error);
+    await bot.sendMessage(msg.chat.id, error.message);
   }
 });
 
 bot.on("contact", async (contact) => {
   try {
     const userPhone = contact.contact.phone_number.slice(2);
-    const findedUser = await userCtrl.addTelegramChatIdToUser(
+    const findUser = await userCtrl.getUserTelegramByPhone(userPhone);
+    if (!findUser) {
+      throw new Error(
+        "У доступі відмовлено. Ваш мобільний не знайдено в базі даних."
+      );
+    }
+    userCallbackData[contact.chat.id] = {
       userPhone,
-      contact.chat.id
-    );
+    };
     await bot.sendMessage(
       contact.chat.id,
-      `${findedUser.name} ідентифікація успішно завершена. \n\nТепер ви можете перейти на головну сторінку`,
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: "🏪 На головну", callback_data: "mainPage" }],
-          ],
-        },
-      }
+      "Введіть ваш PIN код, для авторизації в додатку. PIN код можна дізнатись у правління кооперативу."
     );
   } catch (error) {
-    return await bot.sendMessage(
-      contact.chat.id,
-      "У доступі відмовлено. Ваш мобільний не знайдено в базі даних."
-    );
+    return await bot.sendMessage(contact.chat.id, error.message);
   }
 });
 
