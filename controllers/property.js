@@ -25,28 +25,28 @@ const addTelegramElecticData = async (_id, electricData) => {
   return result;
 };
 
-const upDateAllUsers = async () => {
-  const result = await Property.find();
+// const upDateAllUsers = async () => {
+//   const result = await Property.find();
 
-  result.map(async (prop) => {
-    const update = await Property.findOneAndUpdate(
-      { _id: prop._id },
-      {
-        dues: [
-          { year: 2019, count: 300, paid: 300 },
-          { year: 2020, count: 300, paid: 300 },
-          { year: 2021, count: 300, paid: 300 },
-          { year: 2022, count: 300, paid: 300 },
-          { year: 2023, count: 720, paid: 200 },
-        ],
-      },
-      {
-        new: true,
-      }
-    );
-  });
-};
-upDateAllUsers();
+//   result.map(async (prop) => {
+//     const update = await Property.findOneAndUpdate(
+//       { _id: prop._id },
+//       {
+//         dues: [
+//           { year: 2019, count: 300, paid: 300 },
+//           { year: 2020, count: 300, paid: 300 },
+//           { year: 2021, count: 300, paid: 300 },
+//           { year: 2022, count: 300, paid: 300 },
+//           { year: 2023, count: 720, paid: 200 },
+//         ],
+//       },
+//       {
+//         new: true,
+//       }
+//     );
+//   });
+// };
+// upDateAllUsers();
 
 module.exports = {
   getPropertyTelegramById,

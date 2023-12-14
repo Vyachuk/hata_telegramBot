@@ -296,7 +296,6 @@ bot.on("callback_query", async (ctx) => {
 
 bot.on("text", async (msg) => {
   try {
-    console.log(userCallbackData);
     if (msg.text == "/start") {
       await bot.sendMessage(
         msg.chat.id,
