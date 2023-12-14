@@ -25,6 +25,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/wakeup", (req, res, next) => {
+  console.log("Wake Up");
   res.json({ message: true });
 });
 
