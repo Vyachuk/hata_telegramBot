@@ -24,6 +24,7 @@ const usersSchema = new Schema(
     },
     pinCode: {
       type: String,
+      required: [true, "Add PIN Code"],
       default: (Math.random() * 100).toString().slice(0, 4),
     },
   },
