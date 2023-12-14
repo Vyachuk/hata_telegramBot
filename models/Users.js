@@ -22,6 +22,10 @@ const usersSchema = new Schema(
     admin: {
       type: Boolean,
     },
+    pinCode: {
+      type: String,
+      default: (Math.random() * 100).toString().slice(0, 4),
+    },
   },
   { versionKey: false }
 );

@@ -1,4 +1,4 @@
-const { app, setupWebhook } = require("./app");
+const { app } = require("./app");
 
 const mongoose = require("mongoose");
 
