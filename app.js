@@ -59,6 +59,15 @@ const setupWebhook = async () => {
     return error;
   }
 };
+
+const commands = [
+  {
+    command: "start",
+    description: "Перезапустити бота",
+  },
+];
+bot.setMyCommands(commands);
+
 const userCallbackData = {};
 bot.on("callback_query", async (ctx) => {
   try {
@@ -473,7 +482,12 @@ bot.on("contact", async (contact) => {
     };
     await bot.sendMessage(
       contact.chat.id,
-      "Введіть ваш PIN код, для авторизації в додатку. PIN код можна дізнатись у правління кооперативу."
+      "Введіть ваш PIN код, для авторизації в додатку. PIN код можна дізнатись у правління кооперативу.",
+      {
+        reply_markup: {
+          remove_keyboard: true,
+        },
+      }
     );
   } catch (error) {
     return await bot.sendMessage(contact.chat.id, error.message);
