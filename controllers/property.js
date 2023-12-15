@@ -28,7 +28,7 @@ const addTelegramElecticData = async (_id, electricData) => {
 
 const updateDueArrearsForAll = async (req, res) => {
   const allDataProperty = await Property.find();
-  const result = [];
+
   for (const prop of allDataProperty) {
     const debt = prop.dues.reduce((total, next) => {
       if (next.needPay > 0) {
@@ -43,8 +43,6 @@ const updateDueArrearsForAll = async (req, res) => {
         new: true,
       }
     );
-
-    result.push(updatedProp);
   }
 
   res.status(200).json("Due Arrears is being apdate");
