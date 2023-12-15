@@ -1,3 +1,4 @@
+const { ctrlWrapper } = require("../helpers");
 const Property = require("../models/Property");
 
 const getAllPropertyTelegram = async () => {
@@ -25,6 +26,29 @@ const addTelegramElecticData = async (_id, electricData) => {
   return result;
 };
 
+const updateDueArrearsForAll = async (req, res) => {
+  const allDataProperty = await Property.find();
+  const result = [];
+  for (const prop of allDataProperty) {
+    const debt = prop.dues.reduce((total, next) => {
+      if (next.needPay > 0) {
+        return total + next.needPay;
+      }
+      return total;
+    }, 0);
+    const updatedProp = await Property.findByIdAndUpdate(
+      prop._id,
+      { dueArrears: debt },
+      {
+        new: true,
+      }
+    );
+
+    result.push(updatedProp);
+  }
+
+  res.status(200).json(result);
+};
 // const upDateAllUsers = async () => {
 //   const result = await Property.find();
 
@@ -52,4 +76,5 @@ module.exports = {
   getPropertyTelegramById,
   addTelegramElecticData,
   getAllPropertyTelegram,
+  updateDueArrearsForAll: ctrlWrapper(updateDueArrearsForAll),
 };

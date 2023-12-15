@@ -12,9 +12,9 @@ mongoose
     app.listen(PORT, () => {
       console.log(`Example app listening on port ${PORT}!`);
     });
-    setInterval(() => {
-      setupWebhook();
-    }, 15 * 1000 * 60);
+    // setInterval(() => {
+    //   setupWebhook();
+    // }, 15 * 1000 * 60);
   })
   .catch((e) => {
     console.log(e.message);

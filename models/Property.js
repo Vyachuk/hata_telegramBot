@@ -48,24 +48,7 @@ const propertySchema = new Schema(
   { versionKey: false }
 );
 
-propertySchema.pre("findOneAndUpdate", function (next) {
-  this._update.dues = [
-    ...this._update.dues.map((due) => ({
-      needPay: due.count - due.paid,
-      year: due.year,
-      count: due.count,
-      paid: due.paid,
-    })),
-  ];
-  this._update.dueArrears = this._update.dues.reduce((total, next) => {
-    if (next.needPay > 0) {
-      return total + next.needPay;
-    }
-    return total;
-  }, 0);
-  this.getOptions.runValidators = true;
-  next();
-});
+propertySchema.pre("findOneAndUpdate", runUpdateValidators);
 
 propertySchema.post("findOneAndUpdate", handleValidateError);
 

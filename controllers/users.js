@@ -1,4 +1,11 @@
+const { ctrlWrapper } = require("../helpers");
 const Users = require("../models/Users");
+
+const getAllUsers = async (req, res) => {
+  // const result = await Users.find();
+  const result = "ok";
+  res.status(200).json(result);
+};
 
 const getUserByChatId = async (telegramChatId) => {
   const user = await Users.findOne({
@@ -34,13 +41,7 @@ const addTelegramChatIdToUser = async (phone, telegramChatId) => {
 //     const update = await Users.findOneAndUpdate(
 //       { phone: user.phone },
 //       {
-//         dues: [
-//           { year: 2019, isPaid: false, count: 300 },
-//           { year: 2020, isPaid: false, count: 300 },
-//           { year: 2021, isPaid: false, count: 300 },
-//           { year: 2022, isPaid: false, count: 300 },
-//           { year: 2023, isPaid: false, count: 720 },
-//         ],
+//         enterFee: { needToPay: 0, count: 0, paid: 0, isAvailable: false },
 //       },
 //       {
 //         new: true,
@@ -48,7 +49,8 @@ const addTelegramChatIdToUser = async (phone, telegramChatId) => {
 //     );
 //   });
 // };
-// // upDateAllUsers();
+
+// upDateAllUsers();
 
 // dues: {
 //       type: [{ year: Number, isPaid: Boolean, count: Number }],
@@ -56,6 +58,7 @@ const addTelegramChatIdToUser = async (phone, telegramChatId) => {
 //     },
 
 module.exports = {
+  getAllUsers: ctrlWrapper(getAllUsers),
   getUserByChatId,
   getUserTelegramByPhone,
   addTelegramChatIdToUser,

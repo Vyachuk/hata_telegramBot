@@ -16,6 +16,14 @@ const usersSchema = new Schema(
       type: [String],
       required: [true, "Incorrect owned Id"],
     },
+    enterFee: {
+      type: {
+        isAvailable: Boolean,
+        paid: Number,
+        count: Number,
+        needToPay: Number,
+      },
+    },
     telegramChatId: {
       type: String,
     },

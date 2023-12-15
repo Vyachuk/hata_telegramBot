@@ -4,6 +4,9 @@ const cors = require("cors");
 
 const axios = require("axios");
 
+const usersRouter = require("./routes/api/users");
+const propRouter = require("./routes/api/property");
+
 const TelegramBot = require("node-telegram-bot-api");
 
 require("dotenv").config();
@@ -29,12 +32,16 @@ app.use("/api/wakeup", (req, res, next) => {
   res.json({ message: true });
 });
 
+app.use("/api/users", usersRouter);
+app.use("/api/prop", propRouter);
+
 app.use((req, res) => {
   res.status(404).json({ message: "Not found" });
 });
 
 app.use((err, req, res, next) => {
   const { status = 500, message } = err;
+  console.log(err);
   res.status(status).json({ message });
 });
 
@@ -149,12 +156,20 @@ bot.on("callback_query", async (ctx) => {
       });
     }
     if (ctx.data === "personPage") {
-      let message = `Імя: ${user.name}\nДілянки:`;
+      let message = `Імя: ${user.name}\nВступний членський внесок: ${
+        user.enterFee.isAvailable
+          ? `${
+              user.enterFee.needToPay > 0
+                ? `до сплати <b><i>${user.enterFee.needToPay}</i></b> грн.`
+                : "<b><i>[Оплачено]</i></b>"
+            }`
+          : "Відсутній"
+      }\n\n<b>Ділянки:</b>`;
 
       for (const [idx, id] of user.owned.entries()) {
         const prop = await propertyCtrl.getPropertyTelegramById(id);
 
-        message += `\n\n---------- ---------- ----------\nДілянка №${
+        message += `\n---------- ---------- ----------\nДілянка №${
           prop.propertyNumber
         }\nПлоща: ${prop.area}\nКадастровий номер: ${
           prop.kadastrId
@@ -168,12 +183,15 @@ bot.on("callback_query", async (ctx) => {
             .filter((item) => item.needPay > 0)
             .map((item) => {
               if (item.needPay > 0) {
-                return `\n- Рік: ${item.year} - ${item.needPay} грн`;
+                return `\n- Рік: ${item.year} - <b><i>${item.needPay} грн</i></b>`;
               }
             })
-        }\nЗагальна сума неоплачених внесків: ${prop.dueArrears} грн.`;
+        }\nЗагальна сума неоплачених внесків: <b><i>${
+          prop.dueArrears
+        } грн</i></b>.`;
       }
       await bot.sendMessage(ctx.message.chat.id, message, {
+        parse_mode: "HTML",
         reply_markup: {
           inline_keyboard: [
             [{ text: "🏪 На головну", callback_data: "mainPage" }],
@@ -428,4 +446,4 @@ bot.on("contact", async (contact) => {
 
 bot.on("polling_error", (err) => console.log(err.response.body));
 
-module.exports = { app, setupWebhook };
+module.exports = { app };
