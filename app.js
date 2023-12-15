@@ -169,7 +169,7 @@ bot.on("callback_query", async (ctx) => {
       for (const [idx, id] of user.owned.entries()) {
         const prop = await propertyCtrl.getPropertyTelegramById(id);
 
-        message += `\n---------- ---------- ----------\nДілянка №${
+        message += `\n---------- ---------- ---------- ----------\nДілянка №${
           prop.propertyNumber
         }\nПлоща: ${prop.area}\nКадастровий номер: ${
           prop.kadastrId
