@@ -40,7 +40,14 @@ const propertySchema = new Schema(
     },
     electricData: {
       type: [
-        { date: String, current: Number, previous: Number, forPay: Number },
+        {
+          date: String,
+          current: Number,
+          previous: Number,
+          forPay: Number,
+          paid: Number,
+          debt: Number,
+        },
       ],
       required: [true, "Set current data"],
     },

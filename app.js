@@ -169,7 +169,7 @@ bot.on("callback_query", async (ctx) => {
       for (const [idx, id] of user.owned.entries()) {
         const prop = await propertyCtrl.getPropertyTelegramById(id);
 
-        message += `\n---------- ---------- ---------- ----------\nДілянка №${
+        message += `\n    -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-\n\nДілянка №${
           prop.propertyNumber
         }\nПлоща: ${prop.area}\nКадастровий номер: ${
           prop.kadastrId
@@ -177,16 +177,16 @@ bot.on("callback_query", async (ctx) => {
           prop.hasElectic
             ? `Наявна\nТариф: ${prop.electricTariff} грн.\nАктуальний показник: ${prop.electricData[0].current}`
             : `Відсутня`
-        }\n\nНе оплачені членські внески: ${
+        }\n\n<u>Не оплачені членські внески</u>: ${
           prop.dueArrears &&
           prop.dues
             .filter((item) => item.needPay > 0)
             .map((item) => {
               if (item.needPay > 0) {
-                return `\n- Рік: ${item.year} - <b><i>${item.needPay} грн</i></b>`;
+                return `\n- ${item.year} рік: <b><i>${item.needPay} грн</i></b>`;
               }
             })
-        }\nЗагальна сума неоплачених внесків: <b><i>${
+        }\n<u>Загальна сума неоплачених внесків</u>: <b><i>${
           prop.dueArrears
         } грн</i></b>.`;
       }
@@ -234,21 +234,28 @@ bot.on("callback_query", async (ctx) => {
           `У ділянки №${prop.propertyNumber} відсутнє підключення до світла.`
         );
       }
-
+      const electricData = prop.electricData[0];
       await bot.sendMessage(
         ctx.message.chat.id,
-        `Ділянка номер ${prop.propertyNumber} покази лічильника ${
-          prop.electricData[0]
-            ? `станом на ${prop.electricData[0].date}: ${prop.electricData[0].current}`
+        `Ділянка №${prop.propertyNumber}. \n<u>Заборгованість</u>: <i>${
+          electricData?.debt ?? 0
+        } грн</i>.\nПокази лічильника ${
+          electricData
+            ? `станом на ${electricData.date}: ${electricData.current}`
             : "відсутні"
         }. Оберіть дію: `,
         {
+          parse_mode: "HTML",
           reply_markup: {
             inline_keyboard: [
               [
                 {
                   text: "📝 Подати показник",
                   callback_data: `pokaz ${prop._id}`,
+                },
+                {
+                  text: "💰 Оплатити",
+                  callback_data: `electricpay ${prop._id}`,
                 },
               ],
               [{ text: "🏪 На головну", callback_data: "mainPage" }],
@@ -264,7 +271,7 @@ bot.on("callback_query", async (ctx) => {
       const dateToday = formatDate();
       if (prop.electricData.length > 0) {
         if (
-          prop.electricData[0].date.split(".")[2] === dateToday.split(".")[2]
+          prop.electricData[0].date.split(".")[1] === dateToday.split(".")[1]
         ) {
           return await bot.sendMessage(
             ctx.message.chat.id,
@@ -294,6 +301,25 @@ bot.on("callback_query", async (ctx) => {
       userCallbackData[ctx.message.chat.id] = {
         propId,
       };
+    }
+    if (ctx.data.startsWith("electricpay")) {
+      const prop = await propertyCtrl.getPropertyTelegramById(
+        ctx.data.split(" ")[1]
+      );
+      await bot.sendMessage(
+        ctx.message.chat.id,
+        "Ця послуга поки що недоступна!",
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "⬅️ Назад", callback_data: `properties ${prop._id}` },
+                { text: "🏪 На головну", callback_data: "mainPage" },
+              ],
+            ],
+          },
+        }
+      );
     }
     const emptyKeyboard = { reply_markup: { inline_keyboard: [] } };
 
@@ -366,28 +392,38 @@ bot.on("text", async (msg) => {
           );
         }
       }
+      const electricDataExists = prop.electricData.length > 0;
+      const electricData = electricDataExists ? prop.electricData[0] : null;
+      const forPay =
+        (Number(msg.text) - (electricData?.current || 0)) *
+          prop.electricTariff +
+        (electricData?.debt || 0);
 
       await propertyCtrl.addTelegramElecticData(propertyId, [
         {
           date: formatDate(),
           current: Number(msg.text),
-          previous:
-            prop.electricData.length > 0 ? prop.electricData[0].current : 0,
-          forPay:
-            (Number(msg.text) -
-              ((prop.electricData[0] && prop.electricData[0].current) || 0)) *
-            prop.electricTariff,
+          previous: electricDataExists ? electricData.current : 0,
+          forPay: forPay,
+          paid: 0,
+          debt: forPay,
         },
         ...prop.electricData,
       ]);
       await bot.sendMessage(
         msg.chat.id,
-        `Показник ${msg.text} успішно поданий. До оплати: ${
+        `Показник <i>${
+          msg.text
+        }</i> успішно поданий. Борг за минулі місяці: <i>${
+          prop.electricData[0]?.debt ?? 0
+        }</i>. До оплати: <i>${
           (Number(msg.text) -
             ((prop.electricData[0] && prop.electricData[0].current) || 0)) *
-          prop.electricTariff
-        } грн`,
+            prop.electricTariff +
+          (prop.electricData[0]?.debt || 0)
+        } грн</i>.`,
         {
+          parse_mode: "HTML",
           reply_markup: {
             inline_keyboard: [
               [{ text: "🏪 На головну", callback_data: "mainPage" }],
