@@ -195,9 +195,7 @@ bot.on("callback_query", async (ctx) => {
                 return `\n- ${item.year} рік: <b><i>${item.needPay} грн</i></b>`;
               }
             })
-        }\n<u>Загальна сума неоплачених внесків</u>: <b><i>${
-          prop.dueArrears
-        } грн</i></b>.`;
+        }\n<u>Загалом</u>: <b><i>${prop.dueArrears} грн</i></b>.`;
       }
       await bot.sendMessage(ctx.message.chat.id, message, {
         parse_mode: "HTML",
