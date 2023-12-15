@@ -47,7 +47,7 @@ const updateDueArrearsForAll = async (req, res) => {
     result.push(updatedProp);
   }
 
-  res.status(200).json(result);
+  res.status(200).json("Due Arrears is being apdate");
 };
 // const upDateAllUsers = async () => {
 //   const result = await Property.find();
