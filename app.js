@@ -84,13 +84,16 @@ bot.on("callback_query", async (ctx) => {
                 { text: "⚡️ Світло", callback_data: "electricPage" },
                 { text: "📢 Новини", callback_data: "newsPage" },
               ],
+              [
+                { text: "👤 Моя інформація", callback_data: "personPage" },
+                { text: "😪 Боржники", callback_data: "debtorPage" },
+              ],
+              [{ text: "🙋‍♂️ Голосування", callback_data: "pollPage" }],
 
-              user.admin
-                ? [
-                    { text: "👤 Моя інформація", callback_data: "personPage" },
-                    { text: "👥 Всі показники", callback_data: "allCounters" },
-                  ]
-                : [{ text: "👤 Моя інформація", callback_data: "personPage" }],
+              user.admin && [
+                { text: "👥 Всі показники", callback_data: "allCounters" },
+              ],
+
               [{ text: "🏪 На головну", callback_data: "mainPage" }],
             ],
             one_time_keyboard: true,
@@ -155,15 +158,7 @@ bot.on("callback_query", async (ctx) => {
         );
       }
     }
-    if (ctx.data === "newsPage") {
-      await bot.sendMessage(ctx.message.chat.id, "Немає актуальних новин!", {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: "🏪 На головну", callback_data: "mainPage" }],
-          ],
-        },
-      });
-    }
+
     if (ctx.data === "personPage") {
       let message = `Імя: ${user.name}\nВступний членський внесок: ${
         user.enterFee.isAvailable
@@ -287,7 +282,13 @@ bot.on("callback_query", async (ctx) => {
               parse_mode: "HTML",
               reply_markup: {
                 inline_keyboard: [
-                  [{ text: "🏪 На головну", callback_data: "mainPage" }],
+                  [
+                    {
+                      text: "⬅️ Назад",
+                      callback_data: `properties ${prop._id}`,
+                    },
+                    { text: "🏪 На головну", callback_data: "mainPage" },
+                  ],
                 ],
               },
             }
@@ -323,6 +324,45 @@ bot.on("callback_query", async (ctx) => {
                 { text: "⬅️ Назад", callback_data: `properties ${prop._id}` },
                 { text: "🏪 На головну", callback_data: "mainPage" },
               ],
+            ],
+          },
+        }
+      );
+    }
+    if (ctx.data === "debtorPage") {
+      await bot.sendMessage(
+        ctx.message.chat.id,
+        "Скоро тут появиться список осіб, які не оплатили членські внески за 2023 рік та раніше.",
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🏪 На головну", callback_data: "mainPage" }],
+            ],
+          },
+        }
+      );
+    }
+    if (ctx.data === "newsPage") {
+      await bot.sendMessage(
+        ctx.message.chat.id,
+        "🔴 Членські внески за 2023 рік.🔴\n\nНагадуємо за внески з липня по грудень 2023 року - 720 грн.\nДане рішення було прийнято на зборах в липні 23 року. \n\nОплату потрібно всім членам кооперативу ОБОВ'ЯЗКОВО закрити. \nКошти можна передати кожному із членів правління. \nЗ повагою, Правління СГК 'СТИМУЛ'.",
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🏪 На головну", callback_data: "mainPage" }],
+            ],
+          },
+        }
+      );
+    }
+    if (ctx.data === "pollPage") {
+      await bot.sendMessage(
+        ctx.message.chat.id,
+        "Немає актуальних голосувань!",
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🏪 На головну", callback_data: "mainPage" }],
             ],
           },
         }
