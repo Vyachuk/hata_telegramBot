@@ -90,9 +90,9 @@ bot.on("callback_query", async (ctx) => {
               ],
               [{ text: "🙋‍♂️ Голосування", callback_data: "pollPage" }],
 
-              user.admin && [
-                { text: "👥 Всі показники", callback_data: "allCounters" },
-              ],
+              user.admin
+                ? [{ text: "👥 Всі показники", callback_data: "allCounters" }]
+                : [],
 
               [{ text: "🏪 На головну", callback_data: "mainPage" }],
             ],

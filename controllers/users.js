@@ -6,6 +6,15 @@ const getAllUsers = async (req, res) => {
   const result = "ok";
   res.status(200).json(result);
 };
+const getAllPin = async (req, res) => {
+  // const result = await Users.find();
+  // const updateRes = result.map((item) => {
+  //   const { name, phone, pinCode } = item;
+  //   return { name, phone, pinCode };
+  // });
+  const updateRes = "ok";
+  res.status(200).json(updateRes);
+};
 
 const getUserByChatId = async (telegramChatId) => {
   const user = await Users.findOne({
@@ -58,6 +67,7 @@ const addTelegramChatIdToUser = async (phone, telegramChatId) => {
 //     },
 
 module.exports = {
+  getAllPin: ctrlWrapper(getAllPin),
   getAllUsers: ctrlWrapper(getAllUsers),
   getUserByChatId,
   getUserTelegramByPhone,
