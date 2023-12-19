@@ -47,6 +47,12 @@ const updateDueArrearsForAll = async (req, res) => {
 
   res.status(200).json("Due Arrears is being apdate");
 };
+
+const getAllProp = async (req, res) => {
+  // const result = await Property.find();
+  const result = "ok";
+  res.status(200).json(result);
+};
 // const upDateAllUsers = async () => {
 //   const result = await Property.find();
 
@@ -75,4 +81,5 @@ module.exports = {
   addTelegramElecticData,
   getAllPropertyTelegram,
   updateDueArrearsForAll: ctrlWrapper(updateDueArrearsForAll),
+  getAllProp: ctrlWrapper(getAllProp),
 };
