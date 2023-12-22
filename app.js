@@ -191,7 +191,7 @@ bot.on("callback_query", async (ctx) => {
           prop.kadastrId
         }\nДата покупки: ${prop.ownershipDate}\nЕлектрика: ${
           prop.hasElectic
-            ? `Наявна\nТариф: ${prop.electricTariff} грн.\nАктуальний показник: ${prop.electricData[0].current}`
+            ? `Наявна\nЕлектричний тариф: ${prop.electricTariff} грн/кВт.\nАктуальний показник: ${prop.electricData[0]?.current}`
             : `Відсутня`
         }\n\n<u>Не оплачені членські внески</u>: ${
           prop.dueArrears &&
@@ -355,6 +355,19 @@ bot.on("callback_query", async (ctx) => {
       );
     }
     if (ctx.data === "newsPage") {
+      if (user.phone === "0112223344") {
+        return await bot.sendMessage(
+          ctx.message.chat.id,
+          "🔴 Немає актуальних новин! 🔴",
+          {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "🏪 На головну", callback_data: "mainPage" }],
+              ],
+            },
+          }
+        );
+      }
       await bot.sendMessage(
         ctx.message.chat.id,
         "🔴 Членські внески за 2023 рік.🔴\n\nНагадуємо за внески з липня по грудень 2023 року - 720 грн.\nДане рішення було прийнято на зборах в липні 23 року. \n\nОплату потрібно всім членам кооперативу ОБОВ'ЯЗКОВО закрити. \nКошти можна передати кожному із членів правління. \nЗ повагою, Правління СГК 'СТИМУЛ'.",
@@ -380,6 +393,7 @@ bot.on("callback_query", async (ctx) => {
         }
       );
     }
+
     const emptyKeyboard = { reply_markup: { inline_keyboard: [] } };
 
     bot.editMessageReplyMarkup(emptyKeyboard, {
@@ -400,17 +414,46 @@ bot.on("callback_query", async (ctx) => {
 bot.on("text", async (msg) => {
   try {
     if (msg.text == "/start") {
+      const demoPhoneNumber = "0112223344";
+      const demoUser = await userCtrl.getUserTelegramByPhone(demoPhoneNumber);
+
+      if (demoUser.telegramChatId === msg.chat.id.toString()) {
+        const updatedUser = await userCtrl.addTelegramChatIdToUser(
+          "0112223344",
+          ""
+        );
+      }
+
       await bot.sendMessage(
         msg.chat.id,
-        `Для ідентифікація власника ділянки потрібно поділитись номером мобільного телефону.`,
+        `Для ідентифікації власника ділянки потрібно поділитись номером мобільного телефону.`,
         {
           reply_markup: {
             keyboard: [
-              [{ text: "Поділитись номером телефону", request_contact: true }],
+              [
+                { text: "Поділитись номером телефону", request_contact: true },
+                "💼 Демо-кабінет",
+              ],
             ],
             one_time_keyboard: true,
             is_persistent: true,
             resize_keyboard: true,
+          },
+        }
+      );
+    } else if (msg.text == "💼 Демо-кабінет") {
+      const updatedUser = await userCtrl.addTelegramChatIdToUser(
+        "0112223344",
+        msg.chat.id
+      );
+      await bot.sendMessage(
+        msg.chat.id,
+        `Вітаю ви обрали демо-версію. \n\nТепер ви можете перейти на головну сторінку`,
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🏪 На головну", callback_data: "mainPage" }],
+            ],
           },
         }
       );
