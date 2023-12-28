@@ -24,7 +24,7 @@ const liqpay = new LiqPay(LIQPAY_PUBLIC_KEY, LIQPAY_PRIVATE_KEY);
 const userCtrl = require("./controllers/users");
 const propertyCtrl = require("./controllers/property");
 
-const { markUpInArray, formatDate } = require("./helpers");
+const { markUpInArray, formatDate, dayCounter } = require("./helpers");
 
 const app = express();
 
@@ -286,10 +286,29 @@ bot.on("callback_query", async (ctx) => {
       const prop = await propertyCtrl.getPropertyTelegramById(propId);
 
       const dateToday = formatDate();
+      // Check date
       if (prop.electricData.length > 0) {
-        if (
-          prop.electricData[0].date.split(".")[1] === dateToday.split(".")[1]
-        ) {
+        if (dateToday.split(".")[0] < 27 && dateToday.split(".")[0] > 3) {
+          return await bot.sendMessage(
+            ctx.message.chat.id,
+            `Вибачте, але показники можна подавати лише з 27 числа по 03.`,
+            {
+              parse_mode: "HTML",
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    {
+                      text: "⬅️ Назад",
+                      callback_data: `properties ${prop._id}`,
+                    },
+                    { text: "🏪 На головну", callback_data: "mainPage" },
+                  ],
+                ],
+              },
+            }
+          );
+        }
+        if (dayCounter(dateToday, prop.electricData[0].date) < 10) {
           return await bot.sendMessage(
             ctx.message.chat.id,
             `Ви уже подавали показник цього місяця. \nАктуальний показник <u><i>${prop.electricData[0].current}</i></u> був поданий <u><i>${prop.electricData[0].date}</i></u>.\nПоказник можна буде подати з початку наступного місяця.  \nЯкщо ви допустили помилку, зверніться до <ins>правління кооперативу</ins>.`,
@@ -337,21 +356,21 @@ bot.on("callback_query", async (ctx) => {
       //   order_id: "1",
       //   version: "3",
       // });
-      console.log(liqpay);
-      // await bot.sendMessage(
-      //   ctx.message.chat.id,
-      //   "Ця послуга поки що недоступна!",
-      //   {
-      //     reply_markup: {
-      //       inline_keyboard: [
-      //         [
-      //           { text: "⬅️ Назад", callback_data: `properties ${prop._id}` },
-      //           { text: "🏪 На головну", callback_data: "mainPage" },
-      //         ],
-      //       ],
-      //     },
-      //   }
-      // );
+      // console.log(liqpay);
+      await bot.sendMessage(
+        ctx.message.chat.id,
+        "Ця послуга поки що недоступна!",
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "⬅️ Назад", callback_data: `properties ${prop._id}` },
+                { text: "🏪 На головну", callback_data: "mainPage" },
+              ],
+            ],
+          },
+        }
+      );
     }
     if (ctx.data === "debtorPage") {
       await bot.sendMessage(
