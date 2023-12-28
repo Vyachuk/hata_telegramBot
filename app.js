@@ -9,13 +9,17 @@ const propRouter = require("./routes/api/property");
 
 const TelegramBot = require("node-telegram-bot-api");
 
+const LiqPay = require("liqpay");
+
 require("dotenv").config();
 
-const { TELEGRAM_BOT_API } = process.env;
+const { TELEGRAM_BOT_API, LIQPAY_PUBLIC_KEY, LIQPAY_PRIVATE_KEY } = process.env;
 
 const bot = new TelegramBot(TELEGRAM_BOT_API, {
   polling: true,
 });
+
+const liqpay = new LiqPay(LIQPAY_PUBLIC_KEY, LIQPAY_PRIVATE_KEY);
 
 const userCtrl = require("./controllers/users");
 const propertyCtrl = require("./controllers/property");
@@ -325,20 +329,29 @@ bot.on("callback_query", async (ctx) => {
       const prop = await propertyCtrl.getPropertyTelegramById(
         ctx.data.split(" ")[1]
       );
-      await bot.sendMessage(
-        ctx.message.chat.id,
-        "Ця послуга поки що недоступна!",
-        {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: "⬅️ Назад", callback_data: `properties ${prop._id}` },
-                { text: "🏪 На головну", callback_data: "mainPage" },
-              ],
-            ],
-          },
-        }
-      );
+      // const payAction = liqpay.cnb_form({
+      //   action: "pay",
+      //   amount: "1",
+      //   currency: "UAH",
+      //   description: `оплата за світло від ${user.name}`,
+      //   order_id: "1",
+      //   version: "3",
+      // });
+      console.log(liqpay);
+      // await bot.sendMessage(
+      //   ctx.message.chat.id,
+      //   "Ця послуга поки що недоступна!",
+      //   {
+      //     reply_markup: {
+      //       inline_keyboard: [
+      //         [
+      //           { text: "⬅️ Назад", callback_data: `properties ${prop._id}` },
+      //           { text: "🏪 На головну", callback_data: "mainPage" },
+      //         ],
+      //       ],
+      //     },
+      //   }
+      // );
     }
     if (ctx.data === "debtorPage") {
       await bot.sendMessage(
