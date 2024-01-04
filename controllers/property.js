@@ -60,13 +60,10 @@ const updateElectricData = async (req, res) => {
   const { order_id, amount } = JSON.parse(
     decodedJSON.split(',"description"')[0] + "}"
   );
-  console.log("amount", amount);
+  console.log("decodedJSON", decodedJSON);
 
   const { electricData } = await Property.findById(order_id);
   const { forPay, paid } = electricData[0];
-  console.log("electricData", electricData);
-  console.log("forPay", forPay);
-  console.log("paid", paid);
 
   // const result = await Property.findByIdAndUpdate(
   //   order_id,
