@@ -60,24 +60,28 @@ const updateElectricData = async (req, res) => {
   const { order_id, amount } = JSON.parse(
     decodedJSON.split(',"description"')[0] + "}"
   );
+  console.log("amount", amount);
 
   const { electricData } = await Property.findById(order_id);
   const { forPay, paid } = electricData[0];
+  console.log("electricData", electricData);
+  console.log("forPay", forPay);
+  console.log("paid", paid);
 
-  const result = await Property.findByIdAndUpdate(
-    order_id,
-    {
-      $set: {
-        "electricData.0.paid": paid + amount,
-        "electricData.0.debt":
-          forPay - (paid + amount) < 0 ? 0 : forPay - (paid + amount),
-      },
-    },
+  // const result = await Property.findByIdAndUpdate(
+  //   order_id,
+  //   {
+  //     $set: {
+  //       "electricData.0.paid": paid + amount,
+  //       "electricData.0.debt":
+  //         forPay - (paid + amount) < 0 ? 0 : forPay - (paid + amount),
+  //     },
+  //   },
 
-    {
-      new: true,
-    }
-  );
+  //   {
+  //     new: true,
+  //   }
+  // );
 
   res.status(200).json({
     message: "Ok",
