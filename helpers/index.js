@@ -4,6 +4,7 @@ const ctrlWrapper = require("./ctrlWraper");
 const dayCounter = require("./dayCounter");
 const getLiqpayData = require("./getLiqpayData");
 const checkPayed = require("./checkPayed");
+const sendMsgTelegram = require("./sendMsgTelegram");
 
 module.exports = {
   markUpInArray,
@@ -12,4 +13,5 @@ module.exports = {
   dayCounter,
   getLiqpayData,
   checkPayed,
+  sendMsgTelegram,
 };

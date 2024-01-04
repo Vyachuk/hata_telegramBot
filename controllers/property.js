@@ -1,5 +1,6 @@
-const { ctrlWrapper, checkPayed } = require("../helpers");
+const { ctrlWrapper, checkPayed, sendMsgTelegram } = require("../helpers");
 const Property = require("../models/Property");
+const { getUserTelegramById } = require("./users");
 
 const getAllPropertyTelegram = async () => {
   const result = await Property.find({ hasElectic: true });
@@ -59,7 +60,7 @@ const updateElectricData = async (req, res) => {
   const decodedJSON = Buffer.from(data, "base64").toString("utf-8");
   const { order_id, amount } = JSON.parse(decodedJSON);
 
-  const { electricData } = await Property.findById(order_id);
+  const { electricData, ownerId } = await Property.findById(order_id);
   const { forPay, paid } = electricData[0];
 
   const result = await Property.findByIdAndUpdate(
@@ -76,6 +77,11 @@ const updateElectricData = async (req, res) => {
       new: true,
     }
   );
+
+  if (result) {
+    const { telegramChatId } = await getUserTelegramById(ownerId);
+    sendMsgTelegram(telegramChatId);
+  }
 
   res.status(200).json({
     message: "Ok",
