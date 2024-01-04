@@ -397,15 +397,12 @@ bot.on("callback_query", async (ctx) => {
               {
                 reply_markup: {
                   inline_keyboard: [
-                    user.admin
-                      ? [
-                          {
-                            text: "💰 Перейти на сайт оплати",
-                            url: `${data.request.res.responseUrl}`,
-                          },
-                        ]
-                      : [],
-
+                    [
+                      {
+                        text: "💰 Перейти на сайт оплати",
+                        url: `${data.request.res.responseUrl}`,
+                      },
+                    ],
                     [
                       {
                         text: "⬅️ Назад",
@@ -414,6 +411,7 @@ bot.on("callback_query", async (ctx) => {
                       { text: "🏪 На головну", callback_data: "mainPage" },
                     ],
                   ],
+                  one_time_keyboard: true,
                 },
               }
             );
