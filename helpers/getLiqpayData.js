@@ -5,8 +5,7 @@ const { LIQPAY_PRIVATE_KEY } = process.env;
 
 function getLiqpayData(input) {
   const dataToJSON = JSON.stringify(input);
-  const preData = Buffer.from(dataToJSON).toString("base64");
-  const data = preData.split("+").join("");
+  const data = Buffer.from(dataToJSON).toString("base64");
 
   const sign_string = `${LIQPAY_PRIVATE_KEY}${data}${LIQPAY_PRIVATE_KEY}`;
 
@@ -17,6 +16,9 @@ function getLiqpayData(input) {
   const binaryHash = sha1Hash.digest(); // Отримання бінарного хешу
 
   const base64Signature = Buffer.from(binaryHash).toString("base64");
+  console.log(data);
+
+  console.log(base64Signature);
 
   return { signature: base64Signature, data };
 }

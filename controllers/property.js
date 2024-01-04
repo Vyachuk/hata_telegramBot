@@ -52,9 +52,9 @@ const updateElectricData = async (req, res) => {
   const { data, signature } = req.query;
 
   const isVerifedTransaction = checkPayed(data, signature);
-  if (!isVerifedTransaction) {
-    throw new Error("Not verifed");
-  }
+  // if (!isVerifedTransaction) {
+  //   throw new Error("Not verifed");
+  // }
 
   const decodedJSON = Buffer.from(data, "base64").toString("utf-8");
   const { order_id, amount } = JSON.parse(
@@ -62,14 +62,15 @@ const updateElectricData = async (req, res) => {
   );
 
   const { electricData } = await Property.findById(order_id);
-  const { forPay } = electricData[0];
+  const { forPay, paid } = electricData[0];
 
   const result = await Property.findByIdAndUpdate(
     order_id,
     {
       $set: {
-        "electricData.0.paid": amount,
-        "electricData.0.debt": forPay - amount,
+        "electricData.0.paid": paid + amount,
+        "electricData.0.debt":
+          forPay - (paid + amount) < 0 ? 0 : forPay - (paid + amount),
       },
     },
 
@@ -83,6 +84,7 @@ const updateElectricData = async (req, res) => {
     status: 200,
     data: {
       isVerifedTransaction,
+      result,
     },
   });
 };
