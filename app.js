@@ -39,6 +39,8 @@ app.use("/api/wakeup", (req, res, next) => {
 });
 
 app.use("/api/users", usersRouter);
+
+app.use(express.urlencoded({ extended: false }));
 app.use("/api/prop", propRouter);
 
 app.use((req, res) => {
