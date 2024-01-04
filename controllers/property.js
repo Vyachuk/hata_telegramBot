@@ -49,9 +49,10 @@ const updateDueArrearsForAll = async (req, res) => {
 };
 
 const updateElectricData = async (req, res) => {
-  // const { data, signature } = req.params;
-  console.log(req);
-  console.log(req.body);
+  const decodedBody = Buffer.from(data, "base64").toString("utf-8");
+  const decod = JSON.parse(decodedBody);
+
+  console.log(decod);
 
   // const isVerifedTransaction = checkPayed(data, signature);
   // // if (!isVerifedTransaction) {
