@@ -9,22 +9,24 @@ const propRouter = require("./routes/api/property");
 
 const TelegramBot = require("node-telegram-bot-api");
 
-const LiqPay = require("liqpay");
-
 require("dotenv").config();
 
-const { TELEGRAM_BOT_API, LIQPAY_PUBLIC_KEY, LIQPAY_PRIVATE_KEY } = process.env;
+const { TELEGRAM_BOT_API, SERVER_URL } = process.env;
 
 const bot = new TelegramBot(TELEGRAM_BOT_API, {
   polling: true,
 });
 
-const liqpay = new LiqPay(LIQPAY_PUBLIC_KEY, LIQPAY_PRIVATE_KEY);
-
 const userCtrl = require("./controllers/users");
 const propertyCtrl = require("./controllers/property");
 
-const { markUpInArray, formatDate, dayCounter } = require("./helpers");
+const {
+  markUpInArray,
+  formatDate,
+  dayCounter,
+  getLiqpayData,
+} = require("./helpers");
+const LIQPAY_CONSTANTS = require("./constants/liqpayConstants");
 
 const app = express();
 
@@ -348,29 +350,69 @@ bot.on("callback_query", async (ctx) => {
       const prop = await propertyCtrl.getPropertyTelegramById(
         ctx.data.split(" ")[1]
       );
-      // const payAction = liqpay.cnb_form({
-      //   action: "pay",
-      //   amount: "1",
-      //   currency: "UAH",
-      //   description: `оплата за світло від ${user.name}`,
-      //   order_id: "1",
-      //   version: "3",
-      // });
-      // console.log(liqpay);
-      await bot.sendMessage(
-        ctx.message.chat.id,
-        "Ця послуга поки що недоступна!",
-        {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: "⬅️ Назад", callback_data: `properties ${prop._id}` },
-                { text: "🏪 На головну", callback_data: "mainPage" },
+      const { propertyNumber, electricData } = prop;
+      const { debt, current, _id, previous } = electricData[0];
+      if (debt <= 0) {
+        await bot.sendMessage(
+          ctx.message.chat.id,
+          "У вас відсутні заборгованості по оплаті світла!",
+          {
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: "⬅️ Назад",
+                    callback_data: `properties ${prop._id}`,
+                  },
+                  { text: "🏪 На головну", callback_data: "mainPage" },
+                ],
               ],
-            ],
-          },
-        }
-      );
+            },
+          }
+        );
+      } else {
+        json_string = {
+          order_id: prop._id,
+          server_url: `${SERVER_URL}/api/prop/electricstatus`,
+          ...LIQPAY_CONSTANTS,
+          amount: Number(debt),
+          description: `Оплата за спожиту електроенергію згідно показників(${previous} - ${current}). Ділянка №${propertyNumber}.`,
+        };
+
+        const { signature, data } = getLiqpayData(json_string);
+        axios
+          .post(
+            `https://www.liqpay.ua/api/3/checkout?data=${data}&signature=${signature}`
+          )
+          .then(async (data) => {
+            await bot.sendMessage(
+              ctx.message.chat.id,
+              `Тепер вам потрібно перейти на сайт оплати компанії "LiqPay".\nЗробити це ви можете натиснувши кнопку нижче ⬇️`,
+              {
+                reply_markup: {
+                  inline_keyboard: [
+                    user.admin
+                      ? [
+                          {
+                            text: "💰 Перейти на сайт оплати",
+                            url: `${data.request.res.responseUrl}`,
+                          },
+                        ]
+                      : [],
+
+                    [
+                      {
+                        text: "⬅️ Назад",
+                        callback_data: `properties ${prop._id}`,
+                      },
+                      { text: "🏪 На головну", callback_data: "mainPage" },
+                    ],
+                  ],
+                },
+              }
+            );
+          });
+      }
     }
     if (ctx.data === "debtorPage") {
       await bot.sendMessage(

@@ -1,4 +1,4 @@
-const { ctrlWrapper } = require("../helpers");
+const { ctrlWrapper, checkPayed } = require("../helpers");
 const Property = require("../models/Property");
 
 const getAllPropertyTelegram = async () => {
@@ -48,6 +48,45 @@ const updateDueArrearsForAll = async (req, res) => {
   res.status(200).json("Due Arrears is being apdate");
 };
 
+const updateElectricData = async (req, res) => {
+  const { data, signature } = req.query;
+
+  const isVerifedTransaction = checkPayed(data, signature);
+  if (!isVerifedTransaction) {
+    throw new Error("Not verifed");
+  }
+
+  const decodedJSON = Buffer.from(data, "base64").toString("utf-8");
+  const { order_id, amount } = JSON.parse(
+    decodedJSON.split(',"description"')[0] + "}"
+  );
+
+  const { electricData } = await Property.findById(order_id);
+  const { forPay } = electricData[0];
+
+  const result = await Property.findByIdAndUpdate(
+    order_id,
+    {
+      $set: {
+        "electricData.0.paid": amount,
+        "electricData.0.debt": forPay - amount,
+      },
+    },
+
+    {
+      new: true,
+    }
+  );
+
+  res.status(200).json({
+    message: "Ok",
+    status: 200,
+    data: {
+      isVerifedTransaction,
+    },
+  });
+};
+
 const getAllProp = async (req, res) => {
   // const result = await Property.find();
   const result = "ok";
@@ -82,4 +121,5 @@ module.exports = {
   getAllPropertyTelegram,
   updateDueArrearsForAll: ctrlWrapper(updateDueArrearsForAll),
   getAllProp: ctrlWrapper(getAllProp),
+  updateElectricData: ctrlWrapper(updateElectricData),
 };
