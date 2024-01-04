@@ -49,7 +49,7 @@ const updateDueArrearsForAll = async (req, res) => {
 };
 
 const updateElectricData = async (req, res) => {
-  const decodedBody = Buffer.from(data, "base64").toString("utf-8");
+  const decodedBody = Buffer.from(req.body, "base64").toString("utf-8");
   const decod = JSON.parse(decodedBody);
 
   console.log(decod);
