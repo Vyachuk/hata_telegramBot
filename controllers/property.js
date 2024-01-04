@@ -59,12 +59,13 @@ const updateElectricData = async (req, res) => {
 
   const decodedJSON = Buffer.from(data, "base64").toString("utf-8");
   const { order_id, amount } = JSON.parse(decodedJSON);
+  const userId = order_id.split(" ")[0];
 
-  const { electricData, ownerId } = await Property.findById(order_id);
+  const { electricData, ownerId } = await Property.findById(userId);
   const { forPay, paid } = electricData[0];
 
   const result = await Property.findByIdAndUpdate(
-    order_id,
+    userId,
     {
       $set: {
         "electricData.0.paid": paid + amount,

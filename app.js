@@ -374,7 +374,7 @@ bot.on("callback_query", async (ctx) => {
         );
       } else {
         json_string = {
-          order_id: prop._id,
+          order_id: `${prop._id} ${crypto.randomUUID()}`,
           server_url: `${SERVER_URL}/api/prop/electricstatus`,
           ...LIQPAY_CONSTANTS,
           amount: Number(debt) * 1.02,
