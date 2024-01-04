@@ -49,7 +49,7 @@ const updateDueArrearsForAll = async (req, res) => {
 };
 
 const updateElectricData = async (req, res) => {
-  const { data, signature } = req.query;
+  const { data, signature } = req.params;
 
   const isVerifedTransaction = checkPayed(data, signature);
   // if (!isVerifedTransaction) {
