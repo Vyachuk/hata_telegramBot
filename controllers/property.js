@@ -49,40 +49,35 @@ const updateDueArrearsForAll = async (req, res) => {
 };
 
 const updateElectricData = async (req, res) => {
-  console.log(req.body.signature);
-  // const decodedBody = Buffer.from(req.body, "base64").toString("utf-8");
+  const { signature, data } = req.body;
 
-  // const decod = JSON.parse(decodedBody);
+  const isVerifedTransaction = checkPayed(data, signature);
+  if (!isVerifedTransaction) {
+    throw new Error("Not verifed");
+  }
 
-  // console.log(decodedBody);
+  const decodedJSON = Buffer.from(data, "base64").toString("utf-8");
+  const { order_id, amount } = JSON.parse(
+    decodedJSON.split(',"description"')[0] + "}"
+  );
 
-  // const isVerifedTransaction = checkPayed(data, signature);
-  // // if (!isVerifedTransaction) {
-  // //   throw new Error("Not verifed");
-  // // }
+  const { electricData } = await Property.findById(order_id);
+  const { forPay, paid } = electricData[0];
 
-  // const decodedJSON = Buffer.from(data, "base64").toString("utf-8");
-  // const { order_id, amount } = JSON.parse(
-  //   decodedJSON.split(',"description"')[0] + "}"
-  // );
+  const result = await Property.findByIdAndUpdate(
+    order_id,
+    {
+      $set: {
+        "electricData.0.paid": paid + amount,
+        "electricData.0.debt":
+          forPay - (paid + amount) < 0 ? 0 : forPay - (paid + amount),
+      },
+    },
 
-  // const { electricData } = await Property.findById(order_id);
-  // const { forPay, paid } = electricData[0];
-
-  // const result = await Property.findByIdAndUpdate(
-  //   order_id,
-  //   {
-  //     $set: {
-  //       "electricData.0.paid": paid + amount,
-  //       "electricData.0.debt":
-  //         forPay - (paid + amount) < 0 ? 0 : forPay - (paid + amount),
-  //     },
-  //   },
-
-  //   {
-  //     new: true,
-  //   }
-  // );
+    {
+      new: true,
+    }
+  );
 
   res.status(200).json({
     message: "Ok",
