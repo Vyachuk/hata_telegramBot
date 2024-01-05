@@ -143,7 +143,7 @@ bot.on("callback_query", async (ctx) => {
       );
     }
     if (ctx.data === "alertAdv") {
-      const messageToClient = ctx.message.text.split("\n")[0];
+      const messageToClient = ctx.message.text.split("Ось")[0].trim();
       const creatorName = user.name.split(" ").slice(0, 2).join(" ");
 
       const allUsersChatId = await getAllUsersChatId();
