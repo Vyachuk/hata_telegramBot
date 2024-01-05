@@ -27,6 +27,7 @@ const {
   getLiqpayData,
 } = require("./helpers");
 const LIQPAY_CONSTANTS = require("./constants/liqpayConstants");
+const { getAllUsersChatId } = require("./controllers/users");
 
 const app = express();
 
@@ -85,6 +86,7 @@ const commands = [
 bot.setMyCommands(commands);
 
 const userCallbackData = {};
+const prepareAlert = {};
 bot.on("callback_query", async (ctx) => {
   try {
     const user = await userCtrl.getUserByChatId(ctx.message.chat.id);
@@ -110,12 +112,78 @@ bot.on("callback_query", async (ctx) => {
               ],
 
               user.admin
-                ? [{ text: "👥 Всі показники", callback_data: "allCounters" }]
+                ? [
+                    { text: "👥 Всі показники", callback_data: "allCounters" },
+                    {
+                      text: "📣 Написати оголошення",
+                      callback_data: "writeAlert",
+                    },
+                  ]
                 : [],
 
               [{ text: "🏪 На головну", callback_data: "mainPage" }],
             ],
             one_time_keyboard: true,
+          },
+        }
+      );
+    }
+    if (ctx.data === "writeAlert") {
+      prepareAlert[ctx.message.chat.id] = "";
+      await bot.sendMessage(
+        ctx.message.chat.id,
+        "Напиши повідомлення, та воно відправиться усім учасникам бота!",
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🏪 На головну", callback_data: "mainPage" }],
+            ],
+          },
+        }
+      );
+    }
+    if (ctx.data === "alertAdv") {
+      const messageToClient = ctx.message.text.split("\n")[0];
+      const creatorName = user.name.split(" ").slice(0, 2).join(" ");
+
+      const allUsersChatId = await getAllUsersChatId();
+      const allIds = allUsersChatId
+        .filter((item) => item.telegramChatId)
+        .map((item) => item.telegramChatId);
+
+      const advSender = (chatIds) => {
+        const anotherIds = chatIds.splice(20);
+
+        chatIds.forEach(async (chatPureId) => {
+          await bot.sendMessage(
+            chatPureId,
+            `${messageToClient}\n\nАвтор: ${creatorName}`,
+            {
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: "🏪 На головну", callback_data: "mainPage" }],
+                ],
+              },
+            }
+          );
+        });
+        if (anotherIds) {
+          setTimeout(() => {
+            advSender(anotherIds);
+          }, 60 * 1000);
+        }
+      };
+      if (allIds) {
+        advSender(allIds);
+      }
+      await bot.sendMessage(
+        ctx.message.chat.id,
+        "Оголошення успішно опубліковане!",
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🏪 На головну", callback_data: "mainPage" }],
+            ],
           },
         }
       );
@@ -698,6 +766,21 @@ bot.on("text", async (msg) => {
       );
 
       delete userCallbackData[msg.chat.id];
+    } else if (prepareAlert.hasOwnProperty(msg.chat.id)) {
+      await bot.sendMessage(
+        msg.chat.id,
+        `${msg.text}\n\nОсь так виглядатиме ваше оголошення. Ви дійсно бажаєте його опублікувати для всіх?`,
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "🔉 Опублікувати", callback_data: "alertAdv" },
+                { text: "🏪 На головну", callback_data: "mainPage" },
+              ],
+            ],
+          },
+        }
+      );
     } else {
       const user = await userCtrl.getUserByChatId(msg.chat.id);
       if (!user) {

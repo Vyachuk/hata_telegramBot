@@ -22,6 +22,10 @@ const getUserByChatId = async (telegramChatId) => {
   });
   return user;
 };
+const getAllUsersChatId = async () => {
+  const usersChatId = await Users.find({}).select("telegramChatId");
+  return usersChatId;
+};
 const getUserTelegramById = async (id) => {
   const result = await Users.findById(id);
   return result;
@@ -73,4 +77,5 @@ module.exports = {
   getUserTelegramByPhone,
   addTelegramChatIdToUser,
   getUserTelegramById,
+  getAllUsersChatId,
 };
