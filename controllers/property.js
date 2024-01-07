@@ -46,7 +46,7 @@ const updateDueArrearsForAll = async (req, res) => {
     );
   }
 
-  res.status(200).json("Due Arrears is being apdate");
+  res.status(200).json("All due arrears is updated.");
 };
 
 const updateElectricData = async (req, res) => {
