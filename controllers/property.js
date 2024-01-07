@@ -101,19 +101,19 @@ const getAllProp = async (req, res) => {
 };
 // const upDateAllUsers = async () => {
 //   const result = await Property.find();
-
 //   result.map(async (prop) => {
 //     const update = await Property.findOneAndUpdate(
 //       { _id: prop._id },
-//       {
-//         dues: [
-//           { year: 2019, count: 300, paid: 300 },
-//           { year: 2020, count: 300, paid: 300 },
-//           { year: 2021, count: 300, paid: 300 },
-//           { year: 2022, count: 300, paid: 300 },
-//           { year: 2023, count: 720, paid: 200 },
-//         ],
-//       },
+//       { $push: { dues: { year: 2024, count: 1440, needPay: 1440, paid: 0 } } },
+//       // {
+//       //   dues: [
+//       //     { year: 2019, count: 300, needPay: 0, paid: 300 },
+//       //     { year: 2020, count: 300, needPay: 0, paid: 300 },
+//       //     { year: 2021, count: 300, needPay: 0, paid: 300 },
+//       //     { year: 2022, count: 300, needPay: 0, paid: 300 },
+//       //     { year: 2023, count: 720, needPay: 0, paid: 720 },
+//       //   ],
+//       // },
 //       {
 //         new: true,
 //       }
