@@ -93,6 +93,70 @@ const updateElectricData = async (req, res) => {
     // },
   });
 };
+const updateDuesData = async (req, res) => {
+  const { signature, data } = req.body;
+
+  const isVerifedTransaction = checkPayed(data, signature);
+  if (!isVerifedTransaction) {
+    throw new Error("Not verifed");
+  }
+
+  const decodedJSON = Buffer.from(data, "base64").toString("utf-8");
+  const { order_id, amount, description } = JSON.parse(decodedJSON);
+  const propId = order_id.split(" ")[0];
+
+  const { dues, ownerId } = await Property.findById(propId);
+  const yearForChange = description
+    .split("[")[1]
+    .split("]")[0]
+    .split(",")
+    .map((item) => Number(item.trim()));
+
+  let paidMoney = 0;
+
+  const newDues = dues.map((item, index) => {
+    if (yearForChange.includes(item.year)) {
+      if (paidMoney < amount) {
+        const remainder = amount - paidMoney;
+
+        const editItem = {
+          ...item._doc,
+          paid: remainder < item.needPay ? item.paid + remainder : item.count,
+          needPay: remainder < item.needPay ? item.needPay - remainder : 0,
+        };
+
+        paidMoney += item.needPay;
+        return editItem;
+      }
+    }
+    return item;
+  });
+
+  const result = await Property.findByIdAndUpdate(
+    propId,
+    {
+      dues: newDues,
+    },
+
+    {
+      new: true,
+    }
+  );
+
+  if (result) {
+    const { telegramChatId } = await getUserTelegramById(ownerId);
+    sendMsgTelegram(telegramChatId);
+  }
+
+  res.status(200).json({
+    message: "Ok",
+    status: 200,
+    // data: {
+    //   isVerifedTransaction,
+    //   result,
+    // },
+  });
+};
 
 const getAllProp = async (req, res) => {
   // const result = await Property.find();
@@ -129,4 +193,5 @@ module.exports = {
   updateDueArrearsForAll: ctrlWrapper(updateDueArrearsForAll),
   getAllProp: ctrlWrapper(getAllProp),
   updateElectricData: ctrlWrapper(updateElectricData),
+  updateDuesData: ctrlWrapper(updateDuesData),
 };

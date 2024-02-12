@@ -4,6 +4,8 @@ const cors = require("cors");
 
 const axios = require("axios");
 
+const { v4 } = require("uuid");
+
 const usersRouter = require("./routes/api/users");
 const propRouter = require("./routes/api/property");
 
@@ -99,7 +101,7 @@ bot.on("callback_query", async (ctx) => {
           reply_markup: {
             inline_keyboard: [
               [
-                { text: "⚡️ Світло", callback_data: "electricPage" },
+                { text: "⚡️ Ділянки", callback_data: "propertyPage" },
                 { text: "📢 Новини", callback_data: "newsPage" },
               ],
               [
@@ -288,7 +290,7 @@ bot.on("callback_query", async (ctx) => {
         },
       });
     }
-    if (ctx.data === "electricPage") {
+    if (ctx.data === "propertyPage") {
       const markup = [];
       for (const [_, id] of user.owned.entries()) {
         const { propertyNumber } = await propertyCtrl.getPropertyTelegramById(
@@ -303,7 +305,7 @@ bot.on("callback_query", async (ctx) => {
       const newMarkUp = markUpInArray(markup);
       await bot.sendMessage(
         ctx.message.chat.id,
-        "Виберіть одну з доступних вам ділянок, для більш детальної інформації щодо електроенергії.",
+        "Виберіть одну з доступних вам ділянок, для більш детальної інформації.",
         {
           reply_markup: {
             inline_keyboard: [
@@ -318,36 +320,65 @@ bot.on("callback_query", async (ctx) => {
       const prop = await propertyCtrl.getPropertyTelegramById(
         ctx.data.split(" ")[1]
       );
-      if (!prop.hasElectic) {
-        throw new Error(
-          `У ділянки №${prop.propertyNumber} відсутнє підключення до світла.`
-        );
-      }
+      // if (!prop.hasElectic) {
+      //   throw new Error(
+      //     `У ділянки №${prop.propertyNumber} відсутнє підключення до світла.`
+      //   );
+      // }
       const electricData = prop.electricData[0];
       await bot.sendMessage(
         ctx.message.chat.id,
-        `Ділянка №${prop.propertyNumber}. \n<u>Заборгованість</u>: <i>${
-          electricData?.debt ?? 0
-        } грн</i>.\nПокази лічильника ${
-          electricData
-            ? `станом на ${electricData.date}: ${electricData.current}`
-            : "відсутні"
-        }. Оберіть дію: `,
+        `Ділянка №${
+          prop.propertyNumber
+        }.\n<u>Не оплачені членські внески</u>: ${
+          prop.dueArrears &&
+          prop.dues
+            .filter((item) => item.needPay > 0)
+            .map((item) => {
+              if (item.needPay > 0) {
+                return `\n- ${item.year} рік: <b><i>${item.needPay} грн</i></b>`;
+              }
+            })
+        }\n<u>Загалом</u>: <b><i>${prop.dueArrears} грн</i></b>.${
+          prop.hasElectic
+            ? `\n\nСВІТЛО: \n<u>Заборгованість по світлу</u>: <i>${
+                electricData?.debt ?? 0
+              } грн</i>.\nПокази лічильника ${
+                electricData
+                  ? `станом на ${electricData.date}: ${electricData.current}`
+                  : "відсутні"
+              }. `
+            : ""
+        }\n\nОберіть дію:`,
         {
           parse_mode: "HTML",
           reply_markup: {
             inline_keyboard: [
+              prop.hasElectic
+                ? [
+                    {
+                      text: "📝 Подати показник",
+                      callback_data: `pokaz ${prop._id}`,
+                    },
+                    {
+                      text: "☀️ Оплатити світо",
+                      callback_data: `electricpay ${prop._id}`,
+                    },
+                  ]
+                : [],
               [
                 {
-                  text: "📝 Подати показник",
-                  callback_data: `pokaz ${prop._id}`,
-                },
-                {
-                  text: "💰 Оплатити",
-                  callback_data: `electricpay ${prop._id}`,
+                  text: "🫂 Оплатити членський внесок",
+                  callback_data: `duespay ${prop._id}`,
                 },
               ],
-              [{ text: "🏪 На головну", callback_data: "mainPage" }],
+              [
+                {
+                  text: "⬅️ Назад",
+                  callback_data: `propertyPage`,
+                },
+                { text: "🏪 На головну", callback_data: "mainPage" },
+              ],
             ],
           },
         }
@@ -441,12 +472,14 @@ bot.on("callback_query", async (ctx) => {
           }
         );
       } else {
-        json_string = {
-          order_id: `${prop._id} ${crypto.randomUUID()}`,
+        const randomUID = v4();
+        const ownerLastName = user.name.split(" ")[0];
+        const json_string = {
+          order_id: `${prop._id}_${randomUID}`,
           server_url: `${SERVER_URL}/api/prop/electricstatus`,
           ...LIQPAY_CONSTANTS,
           amount: Number(debt) * 1.02,
-          description: `Оплата за спожиту електроенергію згідно показників(${previous} - ${current}). Ділянка №${propertyNumber}.`,
+          description: `Оплата за спожиту електроенергію згідно показників(${previous} - ${current}). Ділянка №${propertyNumber} (${ownerLastName}).`,
         };
 
         const { signature, data } = getLiqpayData(json_string);
@@ -460,6 +493,86 @@ bot.on("callback_query", async (ctx) => {
               `Сума згідно заборгованостей: ${Number(debt)} грн. Комісія 2%: ${
                 Number(debt) * 0.02
               } грн. До оплати: ${(Number(debt) * 1.02).toFixed(
+                2
+              )} грн.\nТепер вам потрібно перейти на сайт оплати компанії "LiqPay".\nЩоб перейти до оплати, натисніть кнопку нижче ⬇️`,
+              {
+                reply_markup: {
+                  inline_keyboard: [
+                    [
+                      {
+                        text: "💰 Перейти на сайт оплати",
+                        url: `${data.request.res.responseUrl}`,
+                      },
+                    ],
+                    [
+                      {
+                        text: "⬅️ Назад",
+                        callback_data: `properties ${prop._id}`,
+                      },
+                      { text: "🏪 На головну", callback_data: "mainPage" },
+                    ],
+                  ],
+                  one_time_keyboard: true,
+                },
+              }
+            );
+          });
+      }
+    }
+    if (ctx.data.startsWith("duespay")) {
+      const prop = await propertyCtrl.getPropertyTelegramById(
+        ctx.data.split(" ")[1]
+      );
+      const { propertyNumber, dueArrears, dues } = prop;
+
+      if (dueArrears <= 0) {
+        await bot.sendMessage(
+          ctx.message.chat.id,
+          "У вас відсутні заборгованості по оплаті членських внесків!",
+          {
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: "⬅️ Назад",
+                    callback_data: `properties ${prop._id}`,
+                  },
+                  { text: "🏪 На головну", callback_data: "mainPage" },
+                ],
+              ],
+            },
+          }
+        );
+      } else {
+        const randomUID = v4();
+        const ownerLastName = user.name.split(" ")[0];
+        const unpaidYears = dues
+          .filter((item) => item.needPay > 0)
+          .map((item) => item.year);
+
+        const json_string = {
+          order_id: `${prop._id}_${randomUID}`,
+          server_url: `${SERVER_URL}/api/prop/duestatus`,
+          ...LIQPAY_CONSTANTS,
+          amount: Number(dueArrears) * 1.02,
+          description: `Оплата членського внеску за [${unpaidYears.join(
+            ", "
+          )}]. Ділянка №${propertyNumber} (${ownerLastName}).`,
+        };
+
+        const { signature, data } = getLiqpayData(json_string);
+        axios
+          .post(
+            `https://www.liqpay.ua/api/3/checkout?data=${data}&signature=${signature}`
+          )
+          .then(async (data) => {
+            await bot.sendMessage(
+              ctx.message.chat.id,
+              `Сума згідно заборгованостей: ${Number(
+                dueArrears
+              )} грн. Комісія 2%: ${
+                Number(dueArrears) * 0.02
+              } грн. До оплати: ${(Number(dueArrears) * 1.02).toFixed(
                 2
               )} грн.\nТепер вам потрібно перейти на сайт оплати компанії "LiqPay".\nЩоб перейти до оплати, натисніть кнопку нижче ⬇️`,
               {
