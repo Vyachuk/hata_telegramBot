@@ -132,10 +132,18 @@ const updateDuesData = async (req, res) => {
     return item;
   });
 
+  const debt = newDues.reduce((total, next) => {
+    if (next.needPay > 0) {
+      return total + next.needPay;
+    }
+    return total;
+  }, 0);
+
   const result = await Property.findByIdAndUpdate(
     propId,
     {
       dues: newDues,
+      dueArrears: debt,
     },
 
     {
