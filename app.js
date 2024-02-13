@@ -101,7 +101,7 @@ bot.on("callback_query", async (ctx) => {
           reply_markup: {
             inline_keyboard: [
               [
-                { text: "⚡️ Ділянки", callback_data: "propertyPage" },
+                { text: "🏡 Ділянки", callback_data: "propertyPage" },
                 { text: "📢 Новини", callback_data: "newsPage" },
               ],
               [
