@@ -328,7 +328,7 @@ bot.on("callback_query", async (ctx) => {
       const electricData = prop.electricData[0];
       await bot.sendMessage(
         ctx.message.chat.id,
-        `Ділянка №${prop.propertyNumber}.\n<u>ВНЕСКИ</u>: ${
+        `Ділянка №${prop.propertyNumber}.\n<u>ЧЛЕНСЬКІ ВНЕСКИ</u>: ${
           prop.dueArrears
             ? `${prop.dues
                 .filter((item) => item.needPay > 0)
