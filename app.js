@@ -474,7 +474,7 @@ bot.on("callback_query", async (ctx) => {
         const randomUID = v4();
         const ownerLastName = user.name.split(" ")[0];
         const json_string = {
-          order_id: `${prop._id}_${randomUID}`,
+          order_id: `${randomUID}`,
           customer: `${prop._id}`,
           server_url: `${SERVER_URL}/api/prop/electricstatus`,
           ...LIQPAY_CONSTANTS,
@@ -550,7 +550,7 @@ bot.on("callback_query", async (ctx) => {
           .map((item) => item.year);
 
         const json_string = {
-          order_id: `${prop._id}_${randomUID}`,
+          order_id: `${randomUID}`,
           customer: `${prop._id}`,
           server_url: `${SERVER_URL}/api/prop/duestatus`,
           ...LIQPAY_CONSTANTS,

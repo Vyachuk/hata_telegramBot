@@ -58,16 +58,25 @@ const updateElectricData = async (req, res) => {
   }
 
   const decodedJSON = Buffer.from(data, "base64").toString("utf-8");
-  const { order_id, amount, customer, agent_commission } =
-    JSON.parse(decodedJSON);
-  const propId = order_id.split("_")[0];
-  console.log("agent_commission", agent_commission);
-  console.log("customer", customer);
-  const { electricData, ownerId } = await Property.findById(propId);
+  const {
+    amount,
+    customer,
+    commission_credit,
+    commission_debit,
+    receiver_commission,
+  } = JSON.parse(decodedJSON);
+  console.log({
+    amount,
+    commission_credit,
+    commission_debit,
+    receiver_commission,
+  });
+
+  const { electricData, ownerId } = await Property.findById(customer);
   const { forPay, paid } = electricData[0];
 
   const result = await Property.findByIdAndUpdate(
-    propId,
+    customer,
     {
       $set: {
         "electricData.0.paid": paid + amount,
@@ -104,10 +113,22 @@ const updateDuesData = async (req, res) => {
   }
 
   const decodedJSON = Buffer.from(data, "base64").toString("utf-8");
-  const { order_id, amount, description } = JSON.parse(decodedJSON);
-  const propId = order_id.split("_")[0];
+  const {
+    customer,
+    amount,
+    description,
+    commission_credit,
+    commission_debit,
+    receiver_commission,
+  } = JSON.parse(decodedJSON);
+  console.log({
+    amount,
+    commission_credit,
+    commission_debit,
+    receiver_commission,
+  });
 
-  const { dues, ownerId } = await Property.findById(propId);
+  const { dues, ownerId } = await Property.findById(customer);
   const yearForChange = description
     .split("[")[1]
     .split("]")[0]
@@ -142,7 +163,7 @@ const updateDuesData = async (req, res) => {
   }, 0);
 
   const result = await Property.findByIdAndUpdate(
-    propId,
+    customer,
     {
       dues: newDues,
       dueArrears: debt,
