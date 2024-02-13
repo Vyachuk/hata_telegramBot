@@ -328,20 +328,19 @@ bot.on("callback_query", async (ctx) => {
       const electricData = prop.electricData[0];
       await bot.sendMessage(
         ctx.message.chat.id,
-        `Ділянка №${
-          prop.propertyNumber
-        }.\n<u>Не оплачені членські внески</u>: ${
-          prop.dueArrears &&
-          prop.dues
-            .filter((item) => item.needPay > 0)
-            .map((item) => {
-              if (item.needPay > 0) {
-                return `\n- ${item.year} рік: <b><i>${item.needPay} грн</i></b>`;
-              }
-            })
-        }\n<u>Загалом</u>: <b><i>${prop.dueArrears} грн</i></b>.${
+        `Ділянка №${prop.propertyNumber}.\n<u>ВНЕСКИ</u>: ${
+          prop.dueArrears
+            ? `${prop.dues
+                .filter((item) => item.needPay > 0)
+                .map((item) => {
+                  if (item.needPay > 0) {
+                    return `\n- ${item.year} рік: <b><i>${item.needPay} грн</i></b>`;
+                  }
+                })}\nЗагалом: <b><i>${prop.dueArrears} грн</i></b>.`
+            : "у вас все оплачено."
+        }${
           prop.hasElectic
-            ? `\n\nСВІТЛО: \n<u>Заборгованість по світлу</u>: <i>${
+            ? `\n\n<u>СВІТЛО</u>: \nЗаборгованість по світлу: <i>${
                 electricData?.debt ?? 0
               } грн</i>.\nПокази лічильника ${
                 electricData
@@ -361,7 +360,7 @@ bot.on("callback_query", async (ctx) => {
                       callback_data: `pokaz ${prop._id}`,
                     },
                     {
-                      text: "☀️ Оплатити світо",
+                      text: "☀️ Оплатити світло",
                       callback_data: `electricpay ${prop._id}`,
                     },
                   ]
