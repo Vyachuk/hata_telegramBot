@@ -58,19 +58,9 @@ const updateElectricData = async (req, res) => {
   }
 
   const decodedJSON = Buffer.from(data, "base64").toString("utf-8");
-  const {
-    amount,
-    customer,
-    commission_credit,
-    commission_debit,
-    receiver_commission,
-  } = JSON.parse(decodedJSON);
-  console.log({
-    amount,
-    commission_credit,
-    commission_debit,
-    receiver_commission,
-  });
+  const { amount, customer } = JSON.parse(decodedJSON);
+
+  const amountWithoutCommision = amount / 1.02;
 
   const { electricData, ownerId } = await Property.findById(customer);
   const { forPay, paid } = electricData[0];
@@ -79,9 +69,11 @@ const updateElectricData = async (req, res) => {
     customer,
     {
       $set: {
-        "electricData.0.paid": paid + amount,
+        "electricData.0.paid": paid + amountWithoutCommision,
         "electricData.0.debt":
-          forPay - (paid + amount) < 0 ? 0 : forPay - (paid + amount),
+          forPay - (paid + amountWithoutCommision) < 0
+            ? 0
+            : forPay - (paid + amountWithoutCommision),
       },
     },
 
@@ -113,20 +105,9 @@ const updateDuesData = async (req, res) => {
   }
 
   const decodedJSON = Buffer.from(data, "base64").toString("utf-8");
-  const {
-    customer,
-    amount,
-    description,
-    commission_credit,
-    commission_debit,
-    receiver_commission,
-  } = JSON.parse(decodedJSON);
-  console.log({
-    amount,
-    commission_credit,
-    commission_debit,
-    receiver_commission,
-  });
+  const { customer, amount, description } = JSON.parse(decodedJSON);
+
+  const amountWithoutCommision = amount / 1.02;
 
   const { dues, ownerId } = await Property.findById(customer);
   const yearForChange = description
@@ -139,8 +120,8 @@ const updateDuesData = async (req, res) => {
 
   const newDues = dues.map((item, index) => {
     if (yearForChange.includes(item.year)) {
-      if (paidMoney < amount) {
-        const remainder = amount - paidMoney;
+      if (paidMoney < amountWithoutCommision) {
+        const remainder = amountWithoutCommision - paidMoney;
 
         const editItem = {
           ...item._doc,
