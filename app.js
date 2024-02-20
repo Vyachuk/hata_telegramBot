@@ -8,6 +8,7 @@ const { v4 } = require("uuid");
 
 const usersRouter = require("./routes/api/users");
 const propRouter = require("./routes/api/property");
+const elRouter = require("./routes/api/electric");
 
 const TelegramBot = require("node-telegram-bot-api");
 
@@ -45,6 +46,8 @@ app.use("/api/users", usersRouter);
 
 app.use(express.urlencoded({ extended: false }));
 app.use("/api/prop", propRouter);
+
+app.use("/api/electric", elRouter);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Not found" });
@@ -221,7 +224,6 @@ bot.on("callback_query", async (ctx) => {
 
         for (const prop of sortedProperty) {
           const propertyUser = await userCtrl.getUserTelegramById(prop.ownerId);
-
           await bot.sendMessage(
             ctx.message.chat.id,
             `Ім'я: ${propertyUser.name

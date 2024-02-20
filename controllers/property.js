@@ -1,6 +1,13 @@
-const { ctrlWrapper, checkPayed, sendMsgTelegram } = require("../helpers");
+const {
+  ctrlWrapper,
+  checkPayed,
+  sendMsgTelegram,
+  HttpError,
+} = require("../helpers");
 const Property = require("../models/Property");
-const { getUserTelegramById } = require("./users");
+const { getUserTelegramById, addPropIdToUser } = require("./users");
+
+const propExample = require("../utility/prop");
 
 const getAllPropertyTelegram = async () => {
   const result = await Property.find({ hasElectic: true });
@@ -16,6 +23,17 @@ const getPropertyTelegramById = async (id) => {
   return result;
 };
 
+const addElectricIdToProp = async (_id, electricId) => {
+  const result = await Property.findOneAndUpdate(
+    { _id },
+    { isElectic: electricId },
+    {
+      new: true,
+    }
+  );
+  return result;
+};
+
 const addTelegramElecticData = async (_id, electricData) => {
   const result = await Property.findOneAndUpdate(
     { _id },
@@ -25,6 +43,24 @@ const addTelegramElecticData = async (_id, electricData) => {
     }
   );
   return result;
+};
+
+const addProperty = async (req, res) => {
+  const { propertyNumber, duesPaid } = req.body;
+  const prop = await Property.findOne({ propertyNumber });
+  if (prop) {
+    throw HttpError(409, "This prop is already use.");
+  }
+
+  const newPropData = propExample(duesPaid);
+
+  const correctData = { ...newPropData, ...req.body };
+  delete correctData.duesPaid;
+  const result = await Property.create(correctData);
+
+  addPropIdToUser(result.ownerId, result._id);
+
+  res.status(201).json(result);
 };
 
 const updateDueArrearsForAll = async (req, res) => {
@@ -175,35 +211,57 @@ const getAllProp = async (req, res) => {
   const result = "ok";
   res.status(200).json(result);
 };
-// const upDateAllUsers = async () => {
-//   const result = await Property.find();
-//   result.map(async (prop) => {
-//     const update = await Property.findOneAndUpdate(
-//       { _id: prop._id },
-//       { $push: { dues: { year: 2024, count: 1440, needPay: 1440, paid: 0 } } },
-//       // {
-//       //   dues: [
-//       //     { year: 2019, count: 300, needPay: 0, paid: 300 },
-//       //     { year: 2020, count: 300, needPay: 0, paid: 300 },
-//       //     { year: 2021, count: 300, needPay: 0, paid: 300 },
-//       //     { year: 2022, count: 300, needPay: 0, paid: 300 },
-//       //     { year: 2023, count: 720, needPay: 0, paid: 720 },
-//       //   ],
-//       // },
-//       {
-//         new: true,
-//       }
-//     );
-//   });
-// };
+
+const getAllElectricData = async (req, res) => {
+  const result = await Property.find();
+  const electric = result
+    .filter((prop) => prop.hasElectic)
+    .map((prop) => {
+      return {
+        propId: prop._id,
+        plan: "standart",
+        electricTariff: prop.electricTariff,
+        pro: [],
+        standart: prop.electricData,
+      };
+    });
+  res.status(200).json(electric);
+};
+const upDateAllUsers = async () => {
+  const result = await Property.find();
+  result.map(async (prop) => {
+    const update = await Property.findOneAndUpdate(
+      { _id: prop._id },
+      // { $push: { dues: { year: 2024, count: 1440, needPay: 1440, paid: 0 } } },
+      // {
+      //   dues: [
+      //     { year: 2019, count: 300, needPay: 0, paid: 300 },
+      //     { year: 2020, count: 300, needPay: 0, paid: 300 },
+      //     { year: 2021, count: 300, needPay: 0, paid: 300 },
+      //     { year: 2022, count: 300, needPay: 0, paid: 300 },
+      //     { year: 2023, count: 720, needPay: 0, paid: 720 },
+      //   ],
+      // },
+      {
+        isElectic: "",
+      },
+      {
+        new: true,
+      }
+    );
+  });
+};
 // upDateAllUsers();
 
 module.exports = {
   getPropertyTelegramById,
   addTelegramElecticData,
   getAllPropertyTelegram,
+  addElectricIdToProp,
   updateDueArrearsForAll: ctrlWrapper(updateDueArrearsForAll),
+  addProperty: ctrlWrapper(addProperty),
   getAllProp: ctrlWrapper(getAllProp),
   updateElectricData: ctrlWrapper(updateElectricData),
   updateDuesData: ctrlWrapper(updateDuesData),
+  getAllElectricData: ctrlWrapper(getAllElectricData),
 };

@@ -30,6 +30,9 @@ const propertySchema = new Schema(
     dueArrears: {
       type: Number,
     },
+    isElectic: {
+      type: String,
+    },
     hasElectic: {
       type: Boolean,
       required: [true, "Set true/false"],

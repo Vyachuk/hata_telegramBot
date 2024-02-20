@@ -5,6 +5,7 @@ const dayCounter = require("./dayCounter");
 const getLiqpayData = require("./getLiqpayData");
 const checkPayed = require("./checkPayed");
 const sendMsgTelegram = require("./sendMsgTelegram");
+const HttpError = require("./httpError");
 
 module.exports = {
   markUpInArray,
@@ -14,4 +15,5 @@ module.exports = {
   getLiqpayData,
   checkPayed,
   sendMsgTelegram,
+  HttpError,
 };
