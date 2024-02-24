@@ -1,7 +1,7 @@
 const dayCounter = (nowDate, previousDate) => {
-  const now = new Date(nowDate.split(".").reverse().join("-")).getTime();
-  const prev = new Date(previousDate.split(".").reverse().join("-")).getTime();
-  return (now - prev) / (1000 * 60 * 60 * 24);
+  return Math.ceil(
+    Math.abs(new Date(nowDate) - new Date(previousDate)) / (1000 * 3600 * 24)
+  );
 };
 
 module.exports = dayCounter;

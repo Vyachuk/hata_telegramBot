@@ -1,11 +1,7 @@
 const formatDate = () => {
-  const today = new Date();
-  const day = String(today.getDate()).padStart(2, "0");
-  const month = String(today.getMonth() + 1).padStart(2, "0"); // Місяці починаються з 0
-  const year = today.getFullYear();
-
-  const formattedDate = day + "." + month + "." + year;
-  return formattedDate;
+  const fullDate = new Date().toISOString().slice(0, 10);
+  const [year, month, day] = fullDate.split("-");
+  return { fullDate, year, month, day };
 };
 
 module.exports = formatDate;

@@ -9,18 +9,17 @@ const { getUserTelegramById, addPropIdToUser } = require("./users");
 
 const propExample = require("../utility/prop");
 
-const getAllPropertyTelegram = async () => {
-  const result = await Property.find({ hasElectic: true });
-  const editResult = result.map((prop) => ({
-    ownerId: prop.ownerId,
-    electricData: prop.electricData[0],
-  }));
-  return editResult;
+const getReqPropBy = async (req, res) => {
+  const data = req.body;
+  const result = await getPropertyBy(data);
+  res.status(200).json(result);
 };
 
-const getPropertyTelegramById = async (id) => {
-  const result = await Property.findById(id);
-  return result;
+const getPropertyBy = async (data) => {
+  try {
+    const result = await Property.findOne(data);
+    return result;
+  } catch (error) {}
 };
 
 const addElectricIdToProp = async (_id, electricId) => {
@@ -85,53 +84,6 @@ const updateDueArrearsForAll = async (req, res) => {
   res.status(200).json("All due arrears is updated.");
 };
 
-const updateElectricData = async (req, res) => {
-  const { signature, data } = req.body;
-
-  const isVerifedTransaction = checkPayed(data, signature);
-  if (!isVerifedTransaction) {
-    throw new Error("Not verifed");
-  }
-
-  const decodedJSON = Buffer.from(data, "base64").toString("utf-8");
-  const { amount, customer } = JSON.parse(decodedJSON);
-
-  const amountWithoutCommision = amount / 1.02;
-
-  const { electricData, ownerId } = await Property.findById(customer);
-  const { forPay, paid } = electricData[0];
-
-  const result = await Property.findByIdAndUpdate(
-    customer,
-    {
-      $set: {
-        "electricData.0.paid": paid + amountWithoutCommision,
-        "electricData.0.debt":
-          forPay - (paid + amountWithoutCommision) < 0
-            ? 0
-            : forPay - (paid + amountWithoutCommision),
-      },
-    },
-
-    {
-      new: true,
-    }
-  );
-
-  if (result) {
-    const { telegramChatId } = await getUserTelegramById(ownerId);
-    sendMsgTelegram(telegramChatId);
-  }
-
-  res.status(200).json({
-    message: "Ok",
-    status: 200,
-    // data: {
-    //   isVerifedTransaction,
-    //   result,
-    // },
-  });
-};
 const updateDuesData = async (req, res) => {
   const { signature, data } = req.body;
 
@@ -212,56 +164,39 @@ const getAllProp = async (req, res) => {
   res.status(200).json(result);
 };
 
-const getAllElectricData = async (req, res) => {
-  const result = await Property.find();
-  const electric = result
-    .filter((prop) => prop.hasElectic)
-    .map((prop) => {
-      return {
-        propId: prop._id,
-        plan: "standart",
-        electricTariff: prop.electricTariff,
-        pro: [],
-        standart: prop.electricData,
-      };
-    });
-  res.status(200).json(electric);
-};
-const upDateAllUsers = async () => {
-  const result = await Property.find();
-  result.map(async (prop) => {
-    const update = await Property.findOneAndUpdate(
-      { _id: prop._id },
-      // { $push: { dues: { year: 2024, count: 1440, needPay: 1440, paid: 0 } } },
-      // {
-      //   dues: [
-      //     { year: 2019, count: 300, needPay: 0, paid: 300 },
-      //     { year: 2020, count: 300, needPay: 0, paid: 300 },
-      //     { year: 2021, count: 300, needPay: 0, paid: 300 },
-      //     { year: 2022, count: 300, needPay: 0, paid: 300 },
-      //     { year: 2023, count: 720, needPay: 0, paid: 720 },
-      //   ],
-      // },
-      {
-        isElectic: "",
-      },
-      {
-        new: true,
-      }
-    );
-  });
-};
+// const upDateAllUsers = async () => {
+//   const result = await Property.find();
+//   result.map(async (prop) => {
+//     const update = await Property.findOneAndUpdate(
+//       { _id: prop._id },
+// { $push: { dues: { year: 2024, count: 1440, needPay: 1440, paid: 0 } } },
+// {
+//   dues: [
+//     { year: 2019, count: 300, needPay: 0, paid: 300 },
+//     { year: 2020, count: 300, needPay: 0, paid: 300 },
+//     { year: 2021, count: 300, needPay: 0, paid: 300 },
+//     { year: 2022, count: 300, needPay: 0, paid: 300 },
+//     { year: 2023, count: 720, needPay: 0, paid: 720 },
+//   ],
+// },
+//       {
+//         isElectic: "",
+//       },
+//       {
+//         new: true,
+//       }
+//     );
+//   });
+// };
 // upDateAllUsers();
 
 module.exports = {
-  getPropertyTelegramById,
+  getPropertyBy,
   addTelegramElecticData,
-  getAllPropertyTelegram,
   addElectricIdToProp,
+  getReqPropBy: ctrlWrapper(getReqPropBy),
   updateDueArrearsForAll: ctrlWrapper(updateDueArrearsForAll),
   addProperty: ctrlWrapper(addProperty),
   getAllProp: ctrlWrapper(getAllProp),
-  updateElectricData: ctrlWrapper(updateElectricData),
   updateDuesData: ctrlWrapper(updateDuesData),
-  getAllElectricData: ctrlWrapper(getAllElectricData),
 };

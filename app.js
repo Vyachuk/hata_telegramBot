@@ -31,6 +31,14 @@ const {
 } = require("./helpers");
 const LIQPAY_CONSTANTS = require("./constants/liqpayConstants");
 const { getAllUsersChatId } = require("./controllers/users");
+const {
+  getElectric,
+  getAllElectricData,
+  getElectricBy,
+  addIndicator,
+} = require("./controllers/electric");
+const sortElectricData = require("./utility/sortElectricData");
+const { markupAllElectricity, markupPropertyPage } = require("./utility");
 
 const app = express();
 
@@ -97,6 +105,9 @@ bot.on("callback_query", async (ctx) => {
     const user = await userCtrl.getUserByChatId(ctx.message.chat.id);
 
     if (ctx.data === "mainPage") {
+      delete userCallbackData[ctx.message.chat.id];
+      delete prepareAlert[ctx.message.chat.id];
+
       await bot.sendMessage(
         ctx.message.chat.id,
         `Тут ви можете обрати інформацію яка вас цікавить.`,
@@ -203,17 +214,8 @@ bot.on("callback_query", async (ctx) => {
           },
         });
       } else {
-        const allProperty = await propertyCtrl.getAllPropertyTelegram();
-        const sortedProperty = allProperty.sort((a, b) => {
-          const dateA = new Date(
-            a.electricData.date.split(".").reverse().join("-")
-          );
-          const dateB = new Date(
-            b.electricData.date.split(".").reverse().join("-")
-          );
+        const allElectricity = await getAllElectricData();
 
-          return dateB - dateA;
-        });
         await bot.sendMessage(
           ctx.message.chat.id,
           "<b>.................. Початок списку ..................</b>",
@@ -221,19 +223,8 @@ bot.on("callback_query", async (ctx) => {
             parse_mode: "HTML",
           }
         );
-
-        for (const prop of sortedProperty) {
-          const propertyUser = await userCtrl.getUserTelegramById(prop.ownerId);
-          await bot.sendMessage(
-            ctx.message.chat.id,
-            `Ім'я: ${propertyUser.name
-              .split(" ")
-              .slice(0, 2)
-              .join(" ")}\nПоказник: ${prop.electricData.current} | Дата: ${
-              prop.electricData.date
-            }\nДо оплати: ${prop.electricData.debt || 0}`
-          );
-        }
+        const markup = await markupAllElectricity(allElectricity);
+        await bot.sendMessage(ctx.message.chat.id, markup.join("\n\n"));
 
         await bot.sendMessage(
           ctx.message.chat.id,
@@ -262,16 +253,14 @@ bot.on("callback_query", async (ctx) => {
       }\n\n<b>Ділянки:</b>`;
 
       for (const [idx, id] of user.owned.entries()) {
-        const prop = await propertyCtrl.getPropertyTelegramById(id);
+        const prop = await propertyCtrl.getPropertyBy({ _id: id });
 
         message += `\n    -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-\n\nДілянка №${
           prop.propertyNumber
         }\nПлоща: ${prop.area}\nКадастровий номер: ${
           prop.kadastrId
         }\nДата покупки: ${prop.ownershipDate}\nЕлектрика: ${
-          prop.hasElectic
-            ? `Наявна\nАктуальний показник: ${prop.electricData[0]?.current}`
-            : `Відсутня`
+          prop.isElectic ? `Наявна` : `Відсутня`
         }\n\n<u>Не оплачені членські внески</u>: ${
           prop.dueArrears &&
           prop.dues
@@ -295,9 +284,9 @@ bot.on("callback_query", async (ctx) => {
     if (ctx.data === "propertyPage") {
       const markup = [];
       for (const [_, id] of user.owned.entries()) {
-        const { propertyNumber } = await propertyCtrl.getPropertyTelegramById(
-          id
-        );
+        const { propertyNumber } = await propertyCtrl.getPropertyBy({
+          _id: id,
+        });
 
         markup.push({
           text: `🏡 Ділянка №${propertyNumber}`,
@@ -319,80 +308,57 @@ bot.on("callback_query", async (ctx) => {
       );
     }
     if (ctx.data.startsWith("properties")) {
-      const prop = await propertyCtrl.getPropertyTelegramById(
-        ctx.data.split(" ")[1]
-      );
-      // if (!prop.hasElectic) {
-      //   throw new Error(
-      //     `У ділянки №${prop.propertyNumber} відсутнє підключення до світла.`
-      //   );
-      // }
-      const electricData = prop.electricData[0];
-      await bot.sendMessage(
-        ctx.message.chat.id,
-        `Ділянка №${prop.propertyNumber}.\n<u>ЧЛЕНСЬКІ ВНЕСКИ</u>: ${
-          prop.dueArrears
-            ? `${prop.dues
-                .filter((item) => item.needPay > 0)
-                .map((item) => {
-                  if (item.needPay > 0) {
-                    return `\n- ${item.year} рік: <b><i>${item.needPay} грн</i></b>`;
-                  }
-                })}\nЗагалом: <b><i>${prop.dueArrears} грн</i></b>.`
-            : "у вас все оплачено."
-        }${
-          prop.hasElectic
-            ? `\n\n<u>СВІТЛО</u>: \nЗаборгованість по світлу: <i>${
-                electricData?.debt ?? 0
-              } грн</i>.\nПокази лічильника ${
-                electricData
-                  ? `станом на ${electricData.date}: ${electricData.current}`
-                  : "відсутні"
-              }. `
-            : ""
-        }\n\nОберіть дію:`,
-        {
-          parse_mode: "HTML",
-          reply_markup: {
-            inline_keyboard: [
-              prop.hasElectic
-                ? [
-                    {
-                      text: "📝 Подати показник",
-                      callback_data: `pokaz ${prop._id}`,
-                    },
-                    {
-                      text: "☀️ Оплатити світло",
-                      callback_data: `electricpay ${prop._id}`,
-                    },
-                  ]
-                : [],
-              [
-                {
-                  text: "🫂 Оплатити членський внесок",
-                  callback_data: `duespay ${prop._id}`,
-                },
-              ],
-              [
-                {
-                  text: "⬅️ Назад",
-                  callback_data: `propertyPage`,
-                },
-                { text: "🏪 На головну", callback_data: "mainPage" },
-              ],
+      const prop = await propertyCtrl.getPropertyBy({
+        _id: ctx.data.split(" ")[1],
+      });
+      const elec = await getElectricBy({ _id: prop.isElectic });
+
+      const markup = await markupPropertyPage(prop, elec);
+      await bot.sendMessage(ctx.message.chat.id, markup, {
+        parse_mode: "HTML",
+        reply_markup: {
+          inline_keyboard: [
+            prop.isElectic
+              ? [
+                  {
+                    text: "📝 Подати показник",
+                    callback_data: `pokaz ${prop._id}`,
+                  },
+                  {
+                    text: "☀️ Оплатити світло",
+                    callback_data: `electricpay ${prop._id}`,
+                  },
+                ]
+              : [],
+            [
+              {
+                text: "🫂 Оплатити членський внесок",
+                callback_data: `duespay ${prop._id}`,
+              },
             ],
-          },
-        }
-      );
+            [
+              {
+                text: "⬅️ Назад",
+                callback_data: `propertyPage`,
+              },
+              { text: "🏪 На головну", callback_data: "mainPage" },
+            ],
+          ],
+        },
+      });
     }
     if (ctx.data.startsWith("pokaz")) {
       const propId = ctx.data.split(" ")[1];
-      const prop = await propertyCtrl.getPropertyTelegramById(propId);
 
-      const dateToday = formatDate();
+      const elec = await getElectricBy({ propId });
+      const electricData = elec[elec.plan];
+
+      const { fullDate, day } = formatDate();
+      const coolDate = fullDate.split("-").reverse().join(".");
+
       // Check date
-      if (prop.electricData.length > 0) {
-        if (dateToday.split(".")[0] < 27 && dateToday.split(".")[0] > 3) {
+      if (electricData.length) {
+        if (day < 27 && day > 3) {
           return await bot.sendMessage(
             ctx.message.chat.id,
             `Вибачте, але показники можна подавати лише з 27 числа по 03.`,
@@ -403,7 +369,7 @@ bot.on("callback_query", async (ctx) => {
                   [
                     {
                       text: "⬅️ Назад",
-                      callback_data: `properties ${prop._id}`,
+                      callback_data: `properties ${propId}`,
                     },
                     { text: "🏪 На головну", callback_data: "mainPage" },
                   ],
@@ -412,10 +378,14 @@ bot.on("callback_query", async (ctx) => {
             }
           );
         }
-        if (dayCounter(dateToday, prop.electricData[0].date) < 10) {
+        if (dayCounter(fullDate, elec.updateAt) < 20) {
           return await bot.sendMessage(
             ctx.message.chat.id,
-            `Ви уже подавали показник цього місяця. \nАктуальний показник <u><i>${prop.electricData[0].current}</i></u> був поданий <u><i>${prop.electricData[0].date}</i></u>.\nПоказник можна буде подати з початку наступного місяця.  \nЯкщо ви допустили помилку, зверніться до <ins>правління кооперативу</ins>.`,
+            `Ви уже подавали показник цього місяця. \nАктуальний показник ${
+              elec.plan === "standart"
+                ? electricData[0].current
+                : `[День - ${electricData[0].current.day}, Ніч - ${electricData[0].current.night}]`
+            } був поданий <u><i>${coolDate}</i></u>.\nПоказник можна буде подати з початку наступного місяця.  \nЯкщо ви допустили помилку, зверніться до <ins>правління кооперативу</ins>.`,
             {
               parse_mode: "HTML",
               reply_markup: {
@@ -423,7 +393,7 @@ bot.on("callback_query", async (ctx) => {
                   [
                     {
                       text: "⬅️ Назад",
-                      callback_data: `properties ${prop._id}`,
+                      callback_data: `properties ${propId}`,
                     },
                     { text: "🏪 На головну", callback_data: "mainPage" },
                   ],
@@ -435,7 +405,11 @@ bot.on("callback_query", async (ctx) => {
       }
       await bot.sendMessage(
         ctx.message.chat.id,
-        "Подайте актуальний показник лічильника:",
+        `Подайте актуальний показник лічильника${
+          elec.plan === "standart"
+            ? `, приклад: ${electricData[0].current}`
+            : `,(день ніч) приклад: ${electricData[0].current.day} ${electricData[0].current.night}`
+        } `,
         {
           reply_markup: {
             inline_keyboard: [
@@ -449,11 +423,14 @@ bot.on("callback_query", async (ctx) => {
       };
     }
     if (ctx.data.startsWith("electricpay")) {
-      const prop = await propertyCtrl.getPropertyTelegramById(
-        ctx.data.split(" ")[1]
-      );
-      const { propertyNumber, electricData } = prop;
-      const { debt, current, _id, previous } = electricData[0];
+      const propId = ctx.data.split(" ")[1];
+
+      const prop = await propertyCtrl.getPropertyBy({ _id: propId });
+      const elec = await getElectricBy({ propId });
+      const electricData = elec[elec.plan][0];
+      const { debt, current, _id, previous } = electricData;
+      const isStandartPlan = elec.plan === "standart";
+
       if (debt <= 0) {
         await bot.sendMessage(
           ctx.message.chat.id,
@@ -475,14 +452,20 @@ bot.on("callback_query", async (ctx) => {
       } else {
         const randomUID = v4();
         const ownerLastName = user.name.split(" ")[0];
+
         const json_string = {
           order_id: `${randomUID}`,
-          customer: `${prop._id}`,
-          server_url: `${SERVER_URL}/api/prop/electricstatus`,
+          customer: `${_id}`, //electric id
+          server_url: `${SERVER_URL}/api/electric/electricstatus`,
           ...LIQPAY_CONSTANTS,
           amount: Number(debt) * 1.02,
-          description: `Оплата за спожиту електроенергію згідно показників(${previous} - ${current}). Ділянка №${propertyNumber} (${ownerLastName}).`,
+          description: `Оплата за спожиту електроенергію згідно показників(${
+            isStandartPlan ? previous : `[${previous.day} ${previous.night}]`
+          } - ${
+            isStandartPlan ? current : `[${current.day} ${current.night}]`
+          }). Ділянка №${prop.propertyNumber} (${ownerLastName}).`,
         };
+
         const { signature, data } = getLiqpayData(json_string);
         axios
           .post(
@@ -521,9 +504,9 @@ bot.on("callback_query", async (ctx) => {
       }
     }
     if (ctx.data.startsWith("duespay")) {
-      const prop = await propertyCtrl.getPropertyTelegramById(
-        ctx.data.split(" ")[1]
-      );
+      const prop = await propertyCtrl.getPropertyBy({
+        _id: ctx.data.split(" ")[1],
+      });
       const { propertyNumber, dueArrears, dues } = prop;
 
       if (dueArrears <= 0) {
@@ -830,55 +813,56 @@ bot.on("text", async (msg) => {
 
       delete userCallbackData[msg.chat.id];
     } else if (userCallbackData[msg.chat.id]?.propId) {
-      const propertyId = userCallbackData[msg.chat.id].propId;
-      const prop = await propertyCtrl.getPropertyTelegramById(propertyId);
-      if (prop.electricData.length > 0) {
-        if (Number(msg.text) < prop.electricData[0].current) {
-          return await bot.sendMessage(
-            msg.chat.id,
-            "Показник повинен бути більшим за минулий. Впишіть коректний показник."
-          );
-        }
-      }
-      const electricDataExists = prop.electricData.length > 0;
-      const electricData = electricDataExists ? prop.electricData[0] : null;
-      const forPay =
-        (Number(msg.text) - (electricData?.current || 0)) *
-          prop.electricTariff +
-        (electricData?.debt || 0);
+      const propId = userCallbackData[msg.chat.id].propId;
+      const elec = await getElectricBy({ propId });
+      const { day, night } = elec[elec.plan][0].current;
 
-      await propertyCtrl.addTelegramElecticData(propertyId, [
-        {
-          date: formatDate(),
-          current: Number(msg.text),
-          previous: electricDataExists ? electricData.current : 0,
-          forPay: forPay,
-          paid: 0,
-          debt: forPay,
-        },
-        ...prop.electricData,
-      ]);
-      await bot.sendMessage(
-        msg.chat.id,
-        `Показник <i>${
-          msg.text
-        }</i> успішно поданий. Борг за минулі місяці: <i>${
-          prop.electricData[0]?.debt ?? 0
-        }</i>. До оплати: <i>${
-          (Number(msg.text) -
-            ((prop.electricData[0] && prop.electricData[0].current) || 0)) *
-            prop.electricTariff +
-          (prop.electricData[0]?.debt || 0)
-        } грн</i>.`,
-        {
-          parse_mode: "HTML",
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: "🏪 На головну", callback_data: "mainPage" }],
-            ],
-          },
-        }
-      );
+      const inputText = msg.text.trim();
+      if (elec.plan === "standart") {
+        if (!Number(inputText) || inputText.split(" ").length > 1)
+          throw new Error(
+            "Ви ввели некоректний показник. Введіть лише одну цифру без пробілів."
+          );
+      }
+      if (elec.plan === "pro") {
+        const indicators = inputText.split(" ");
+        if (
+          indicators.length > 2 ||
+          !Number(indicators[0]) ||
+          !Number(indicators[1])
+        )
+          throw new Error(
+            `Ви ввели некоректний показник. Введіть (день ніч) приклад: ${day} ${night}.`
+          );
+      }
+
+      const resultData = await addIndicator(elec, inputText);
+      if (resultData.error) {
+        return await bot.sendMessage(msg.chat.id, resultData.error);
+      }
+      if (resultData.data) {
+        const { plan } = resultData.data;
+        const elData = resultData.data[plan][0];
+
+        await bot.sendMessage(
+          msg.chat.id,
+          `Показник ${
+            plan === "standart"
+              ? elData.current
+              : `[День - ${elData.current.day}, Ніч - ${elData.current.night}]`
+          } успішно поданий. Борг за минулі місяці: <i>${
+            elec[elec.plan][0].debt
+          }</i>. До оплати: <i>${elData.debt} грн</i>.`,
+          {
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "🏪 На головну", callback_data: "mainPage" }],
+              ],
+            },
+          }
+        );
+      }
 
       delete userCallbackData[msg.chat.id];
     } else if (prepareAlert.hasOwnProperty(msg.chat.id)) {

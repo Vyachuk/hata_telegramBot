@@ -6,8 +6,7 @@ require("dotenv").config();
 
 const { TELEGRAM_BOT_API } = process.env;
 
-const sendMsgTelegram = async (chatId) => {
-  const telegramMessage = `Оплата пройшла успішно. Тепер ви можете повернутись до Головного меню.`;
+const sendMsgTelegram = async (chatId, msg) => {
   const markup = {
     inline_keyboard: [[{ text: "🏪 На головну", callback_data: "mainPage" }]],
     one_time_keyboard: true,
@@ -18,7 +17,7 @@ const sendMsgTelegram = async (chatId) => {
       `${TELEGRAM_API}${TELEGRAM_BOT_API}/sendMessage`,
       {
         chat_id: chatId,
-        text: telegramMessage,
+        text: msg,
         reply_markup: markup,
       }
     );

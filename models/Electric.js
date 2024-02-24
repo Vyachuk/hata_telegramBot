@@ -16,10 +16,12 @@ const electricSchema = new Schema(
       type: Number,
       required: [true, "Set tariff"],
     },
+    updateAt: {
+      type: String,
+    },
     standart: {
       type: [
         {
-          date: String,
           current: Number,
           previous: Number,
           forPay: Number,
@@ -31,9 +33,8 @@ const electricSchema = new Schema(
     pro: {
       type: [
         {
-          date: String,
-          current: Number,
-          previous: Number,
+          current: { day: Number, night: Number },
+          previous: { day: Number, night: Number },
           forPay: Number,
           paid: Number,
           debt: Number,
