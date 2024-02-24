@@ -428,7 +428,7 @@ bot.on("callback_query", async (ctx) => {
       const prop = await propertyCtrl.getPropertyBy({ _id: propId });
       const elec = await getElectricBy({ propId });
       const electricData = elec[elec.plan][0];
-      const { debt, current, _id, previous } = electricData;
+      const { debt, current, previous } = electricData;
       const isStandartPlan = elec.plan === "standart";
 
       if (debt <= 0) {
@@ -455,7 +455,7 @@ bot.on("callback_query", async (ctx) => {
 
         const json_string = {
           order_id: `${randomUID}`,
-          customer: `${_id}`, //electric id
+          customer: `${elec._id}`, //electric id
           server_url: `${SERVER_URL}/api/electric/electricstatus`,
           ...LIQPAY_CONSTANTS,
           amount: Number(debt) * 1.02,
