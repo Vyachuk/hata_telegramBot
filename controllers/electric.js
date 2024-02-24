@@ -9,6 +9,7 @@ const Electric = require("../models/Electric");
 const { electricExample } = require("../utility");
 
 const { addElectricIdToProp, getPropertyBy } = require("./property");
+const { getUserTelegramById } = require("./users");
 
 const getElectric = async (req, res) => {
   const result = await getAllElectricData();
@@ -58,8 +59,9 @@ const updateElectricIndicatorFromLiqpay = async (req, res) => {
   const { forPay, paid } = elec[elec.plan][0];
 
   const updateObj = {};
-  updateObj[`${elec.elec[plan]}.0.paid`] = paid + amountWithoutCommision;
-  updateObj[`${elec.elec[plan]}.0.debt`] =
+  updateObj[elec.plan === "standart" ? `standart.0.paid` : `pro.0.paid`] =
+    paid + amountWithoutCommision;
+  updateObj[elec.plan === "standart" ? `standart.0.debt` : `pro.0.debt`] =
     forPay - (paid + amountWithoutCommision) < 0
       ? 0
       : forPay - (paid + amountWithoutCommision);
