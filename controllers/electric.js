@@ -53,18 +53,18 @@ const updateElectricIndicatorFromLiqpay = async (req, res) => {
   const decodedJSON = Buffer.from(data, "base64").toString("utf-8");
   const { amount, customer } = JSON.parse(decodedJSON);
 
-  const amountWithoutCommision = amount / 1.02;
+  const amountWithoutCommision = Math.round(amount / 1.02 * 10) / 10
 
   const elec = await getElectricBy({ _id: customer });
   const { forPay, paid } = elec[elec.plan][0];
 
   const updateObj = {};
   updateObj[elec.plan === "standart" ? `standart.0.paid` : `pro.0.paid`] =
-    paid + amountWithoutCommision;
+    Number(paid) + amountWithoutCommision;
   updateObj[elec.plan === "standart" ? `standart.0.debt` : `pro.0.debt`] =
-    forPay - (paid + amountWithoutCommision) < 0
+    forPay - (Number(paid) + amountWithoutCommision) < 0
       ? 0
-      : forPay - (paid + amountWithoutCommision);
+      : forPay - (Number(paid) + amountWithoutCommision);
 
   const result = await Electric.findByIdAndUpdate(
     customer,
@@ -83,7 +83,7 @@ const updateElectricIndicatorFromLiqpay = async (req, res) => {
 
   res.status(200).json({
     message: "Ok",
-    status: 200,
+    status: 200
     // data: {
     //   isVerifedTransaction,
     //   result,
