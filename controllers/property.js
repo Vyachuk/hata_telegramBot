@@ -95,7 +95,7 @@ const updateDuesData = async (req, res) => {
   const decodedJSON = Buffer.from(data, "base64").toString("utf-8");
   const { customer, amount, description } = JSON.parse(decodedJSON);
 
-  const amountWithoutCommision = amount / 1.02;
+  const amountWithoutCommision = Math.round(amount / 1.02)
 
   const { dues, ownerId } = await Property.findById(customer);
   const yearForChange = description
