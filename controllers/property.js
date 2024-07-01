@@ -95,7 +95,7 @@ const updateDuesData = async (req, res) => {
   const decodedJSON = Buffer.from(data, "base64").toString("utf-8");
   const { customer, amount, description } = JSON.parse(decodedJSON);
 
-  const amountWithoutCommision = Math.round(amount / 1.02)
+  const amountWithoutCommision = Math.round(amount / 1.02);
 
   const { dues, ownerId } = await Property.findById(customer);
   const yearForChange = description
@@ -164,6 +164,19 @@ const getAllProp = async (req, res) => {
   res.status(200).json(result);
 };
 
+const getAllDebtor = async (req, res) => {
+  const result = await Property.find();
+
+  return result
+    .filter((prop) => prop.dueArrears > 1500)
+    .map(({ ownerId, dueArrears, propertyNumber }) => ({
+      ownerId,
+      dueArrears,
+      propertyNumber,
+    }))
+    .sort((a, b) => a.propertyNumber - b.propertyNumber);
+};
+
 // const upDateAllUsers = async () => {
 //   const result = await Property.find();
 //   result.map(async (prop) => {
@@ -191,6 +204,7 @@ const getAllProp = async (req, res) => {
 // upDateAllUsers();
 
 module.exports = {
+  getAllDebtor,
   getPropertyBy,
   addTelegramElecticData,
   addElectricIdToProp,

@@ -38,7 +38,11 @@ const {
   addIndicator,
 } = require("./controllers/electric");
 const sortElectricData = require("./utility/sortElectricData");
-const { markupAllElectricity, markupPropertyPage } = require("./utility");
+const {
+  markupAllElectricity,
+  markupPropertyPage,
+  markupDebtorsList,
+} = require("./utility");
 
 const app = express();
 
@@ -585,17 +589,26 @@ bot.on("callback_query", async (ctx) => {
       }
     }
     if (ctx.data === "debtorPage") {
-      await bot.sendMessage(
-        ctx.message.chat.id,
-        "Скоро тут появиться список осіб, які не оплатили членські внески за 2023 рік та раніше.",
-        {
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: "🏪 На головну", callback_data: "mainPage" }],
-            ],
-          },
-        }
-      );
+      const allDebtor = await propertyCtrl.getAllDebtor();
+      const allDebtorDataPromises = allDebtor.map(async (prop) => {
+        const user = await userCtrl.getUserTelegramById(prop.ownerId);
+
+        return {
+          ...prop,
+          name: user.name,
+        };
+      });
+
+      const allDebtorData = await Promise.all(allDebtorDataPromises);
+      const markup = await markupDebtorsList(allDebtorData);
+
+      await bot.sendMessage(ctx.message.chat.id, markup.join("\n"), {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "🏪 На головну", callback_data: "mainPage" }],
+          ],
+        },
+      });
     }
     if (ctx.data === "newsPage") {
       if (user.phone === "0112223344") {
@@ -645,7 +658,7 @@ bot.on("callback_query", async (ctx) => {
 Ідентифікаційний код юридичної особи - 36031384
 Голова кооперативу - Дубан Назар
 Контакти: stymulhome@gmail.com
-\nАктуальні тарифи та оплати на ${new Date().getFullYear()} рік\n1. Тариф електроенергії - 3 грн/кВт\n2. Тариф на річний членський внесок - 1440 грн/рік.`,
+\nАктуальні тарифи та оплати на ${new Date().getFullYear()} рік\n1. Тариф електроенергії - 4.5 грн/кВт\n2. Тариф на річний членський внесок - 1440 грн/рік.`,
         {
           reply_markup: {
             inline_keyboard: [
